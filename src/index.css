@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-cream text-ink-900 font-sans antialiased;
+    background-image: radial-gradient(
+        1200px 500px at 50% -10%,
+        rgba(232, 116, 124, 0.12),
+        transparent 70%
+      ),
+      radial-gradient(900px 400px at 100% 100%, rgba(122, 171, 134, 0.1), transparent 70%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Keep number inputs friendly on mobile */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-card bg-white/85 backdrop-blur-sm shadow-soft border border-white/70;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 font-bold
+           transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none
+           select-none text-[15px];
+  }
+
+  .btn-primary {
+    @apply btn bg-blush-500 text-white shadow-lift hover:bg-blush-600;
+  }
+
+  .btn-secondary {
+    @apply btn bg-white text-ink-900 border border-blush-100 hover:bg-blush-50;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-600 hover:bg-white/70;
+  }
+
+  .btn-success {
+    @apply btn bg-sage-500 text-white hover:bg-sage-700;
+  }
+
+  .input {
+    @apply w-full rounded-2xl border border-blush-100 bg-white px-4 py-3 text-[15px]
+           outline-none focus:border-blush-300 focus:ring-4 focus:ring-blush-100/70
+           placeholder:text-ink-400;
+  }
+
+  .label {
+    @apply block text-sm font-bold text-ink-600 mb-1.5;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold;
+  }
+
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

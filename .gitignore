@@ -1,0 +1,27 @@
+node_modules
+dist
+dist-ssr
+.vercel
+.DS_Store
+*.local
+
+# Never commit real credentials
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+*.log
+
+# PWA build output
+dev-dist
+public/sw.js
+public/workbox-*.js
+public/registerSW.js

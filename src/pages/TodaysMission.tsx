@@ -1,0 +1,150 @@
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, Flame, Heart } from 'lucide-react'
+import { useAuth } from '@/context/AuthProvider'
+import { useDay, useJourney, useNotificationPrefs } from '@/hooks/queries'
+import { useOverdueReminders } from '@/hooks/useReminders'
+import { useServerOffset } from '@/hooks/useLiveTimer'
+import { deriveStatus } from '@/lib/activityStatus'
+import { formatDate, formatDuration, roundPercent } from '@/lib/format'
+import { friendlyError } from '@/lib/supabase'
+import { notificationPermission } from '@/lib/notifications'
+import { ActivityCard } from '@/components/ActivityCard'
+import { MotivationBanner } from '@/components/MotivationBanner'
+import { ReminderBanner } from '@/components/ReminderBanner'
+import { ProgressRing } from '@/components/ui/ProgressRing'
+import { EmptyState, ErrorState, Spinner } from '@/components/ui/Feedback'
+
+export default function TodaysMission() {
+  const navigate = useNavigate()
+  const { profile } = useAuth()
+  const day = useDay()
+  const journey = useJourney()
+  const prefs = useNotificationPrefs(profile?.id)
+  const offset = useServerOffset(day.data?.server_time)
+  const overdue = useOverdueReminders(day.data)
+
+  if (day.isLoading) return <Spinner label="Getting today ready…" />
+  if (day.isError) {
+    return <ErrorState message={friendlyError(day.error)} onRetry={() => void day.refetch()} />
+  }
+  if (!day.data) return null
+
+  const { activities, progress, day_number, day_approval } = day.data
+  const percent = roundPercent(progress.percent)
+
+  const required = activities.filter((activity) => activity.is_required)
+  const remaining = required.filter((activity) => {
+    const status = deriveStatus(activity)
+    return status !== 'approved' && status !== 'waiting'
+  })
+  const completedCount = required.length - remaining.length
+
+  // The one button that matters: whatever is closest to being finished.
+  const nextUp =
+    remaining.find((activity) => deriveStatus(activity) === 'ready_to_submit') ??
+    remaining.find((activity) => deriveStatus(activity) === 'needs_proof') ??
+    remaining.find((activity) => deriveStatus(activity) === 'correction') ??
+    remaining.find((activity) => activity.live_session) ??
+    remaining[0]
+
+  const allDone = required.length > 0 && remaining.length === 0
+  const streak = journey.data?.current_streak ?? 0
+
+  return (
+    <div className="space-y-5">
+      <header className="pt-1">
+        <p className="text-sm font-bold text-ink-400">
+          Hi {profile?.display_name ?? 'there'} {profile?.emoji}
+        </p>
+        <h1 className="text-2xl font-extrabold leading-tight">Today's Mission ❤️</h1>
+        <p className="text-sm text-ink-400">
+          Day {day_number} of {day.data.plan?.goal_days ?? 90} · {formatDate(day.data.date)}
+        </p>
+      </header>
+
+      <section className="flex flex-col items-center gap-3">
+        <ProgressRing
+          percent={percent}
+          label={allDone ? "Today's mission complete" : `${completedCount} of ${required.length} done`}
+          sublabel={
+            remaining.length > 0
+              ? `${remaining.length} ${remaining.length === 1 ? 'task' : 'tasks'} remaining`
+              : undefined
+          }
+        />
+
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {streak > 0 && (
+            <span className="chip bg-blush-100 text-blush-700">
+              <Flame size={14} /> {streak} day streak
+            </span>
+          )}
+          <span className="chip bg-white text-ink-600">
+            ⏱️ {formatDuration(progress.total_active_seconds)} today
+          </span>
+        </div>
+
+        <MotivationBanner percent={percent} dayNumber={day_number} />
+      </section>
+
+      {day_approval && (
+        <section className="card animate-fade-up border-sage-300 bg-sage-100/70 p-4 text-center">
+          <p className="text-2xl">🎉</p>
+          <p className="mt-1 text-lg font-extrabold">Approved by Kruti ❤️</p>
+          {day_approval.message && (
+            <p className="mt-2 text-[15px] leading-snug text-ink-600">"{day_approval.message}"</p>
+          )}
+        </section>
+      )}
+
+      {!day_approval && allDone && (
+        <section className="card animate-fade-up p-5 text-center">
+          <p className="text-3xl">🎉</p>
+          <h2 className="mt-1 text-xl font-extrabold">Today's mission complete</h2>
+          <p className="mt-1 text-sm text-ink-400">
+            Everything is done and approved. Kruti just needs to sign off on the day.
+          </p>
+          <p className="mt-3 chip inline-flex bg-orange-100 text-orange-700">
+            🟠 Waiting for Kruti's final approval
+          </p>
+        </section>
+      )}
+
+      <ReminderBanner
+        overdue={overdue}
+        notificationsOff={!prefs.data?.enabled || notificationPermission() !== 'granted'}
+      />
+
+      {nextUp && (
+        <button
+          type="button"
+          onClick={() => navigate(`/activity/${nextUp.id}`)}
+          className="btn-primary w-full py-4 text-base"
+        >
+          Continue today's mission <Heart size={18} className="fill-white" />
+        </button>
+      )}
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-lg font-extrabold">Today's activities</h2>
+          <Link to="/history" className="text-sm font-bold text-blush-600">
+            History <ArrowRight size={14} className="inline" />
+          </Link>
+        </div>
+
+        {activities.length === 0 ? (
+          <EmptyState
+            emoji="🌱"
+            title="No activities yet"
+            description="Kruti hasn't set up the daily plan. Ask her to add the first one."
+          />
+        ) : (
+          activities.map((activity) => (
+            <ActivityCard key={activity.id} activity={activity} offsetMs={offset} />
+          ))
+        )}
+      </section>
+    </div>
+  )
+}
