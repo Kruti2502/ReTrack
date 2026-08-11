@@ -17,7 +17,6 @@ import KrutiSettings from '@/pages/kruti/KrutiSettings'
 import NotFound from '@/pages/NotFound'
 
 export default function App() {
-  // Reminders live at the root so they keep working on every screen.
   useReminders()
 
   return (
