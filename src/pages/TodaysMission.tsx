@@ -1,16 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Flame, Heart } from 'lucide-react'
 import { useAuth } from '@/context/AuthProvider'
-import { useDay, useJourney, useNotificationPrefs } from '@/hooks/queries'
-import { useOverdueReminders } from '@/hooks/useReminders'
+import { useDay, useJourney } from '@/hooks/queries'
 import { useServerOffset } from '@/hooks/useLiveTimer'
 import { deriveStatus } from '@/lib/activityStatus'
 import { formatDate, formatDuration, roundPercent } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
-import { notificationPermission } from '@/lib/notifications'
 import { ActivityCard } from '@/components/ActivityCard'
 import { MotivationBanner } from '@/components/MotivationBanner'
-import { ReminderBanner } from '@/components/ReminderBanner'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/Feedback'
 
@@ -19,9 +16,7 @@ export default function TodaysMission() {
   const { profile } = useAuth()
   const day = useDay()
   const journey = useJourney()
-  const prefs = useNotificationPrefs(profile?.id)
   const offset = useServerOffset(day.data?.server_time)
-  const overdue = useOverdueReminders(day.data)
 
   if (day.isLoading) return <Spinner label="Getting today ready…" />
   if (day.isError) {
@@ -131,14 +126,6 @@ export default function TodaysMission() {
             🟠 Waiting for Kruti's final approval
           </p>
         </section>
-      )}
-
-      {/* Nothing is late on a rest day, so nothing nags. */}
-      {!is_rest_day && (
-        <ReminderBanner
-          overdue={overdue}
-          notificationsOff={!prefs.data?.enabled || notificationPermission() !== 'granted'}
-        />
       )}
 
       {nextUp && (

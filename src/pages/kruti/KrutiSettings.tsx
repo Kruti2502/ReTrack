@@ -6,7 +6,6 @@ import { useAuth } from '@/context/AuthProvider'
 import { keys, useMessages } from '@/hooks/queries'
 import { createMessage, deleteMessage, updateMessage } from '@/api/settings'
 import { friendlyError } from '@/lib/supabase'
-import { NotificationSettings } from '@/components/NotificationSettings'
 import { Modal } from '@/components/ui/Modal'
 import { Spinner } from '@/components/ui/Feedback'
 import { useToast } from '@/context/ToastProvider'
@@ -38,11 +37,9 @@ export default function KrutiSettings() {
         <Settings2 size={20} className="text-blush-500" />
         <div className="flex-1">
           <p className="font-extrabold">Manage the daily plan</p>
-          <p className="text-xs text-ink-400">Activities, targets, reminders, rest days</p>
+          <p className="text-xs text-ink-400">Activities, targets, rest days</p>
         </div>
       </Link>
-
-      <NotificationSettings />
 
       <section className="card p-4">
         <div className="flex items-center justify-between">

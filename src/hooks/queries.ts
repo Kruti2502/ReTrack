@@ -3,7 +3,7 @@ import { fetchDay, fetchHistory, fetchJourneyStats } from '@/api/day'
 import { fetchActivePlan, fetchActivities } from '@/api/plan'
 import { fetchGallery, type GalleryFilters } from '@/api/proof'
 import { fetchPendingSubmissions } from '@/api/review'
-import { fetchMessages, fetchNotificationPrefs } from '@/api/settings'
+import { fetchMessages } from '@/api/settings'
 
 export const keys = {
   day: (date?: string | null) => ['day', date ?? 'today'] as const,
@@ -14,7 +14,6 @@ export const keys = {
   plan: ['active-plan'] as const,
   gallery: (filters: GalleryFilters) => ['gallery', filters] as const,
   messages: ['motivational-messages'] as const,
-  prefs: (userId: string) => ['notification-prefs', userId] as const,
 }
 
 export function useDay(date?: string | null, options?: { enabled?: boolean }) {
@@ -62,14 +61,6 @@ export function useGallery(filters: GalleryFilters) {
 
 export function useMessages() {
   return useQuery({ queryKey: keys.messages, queryFn: fetchMessages })
-}
-
-export function useNotificationPrefs(userId: string | undefined) {
-  return useQuery({
-    queryKey: keys.prefs(userId ?? 'none'),
-    queryFn: () => fetchNotificationPrefs(userId as string),
-    enabled: Boolean(userId),
-  })
 }
 
 /**

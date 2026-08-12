@@ -10,7 +10,7 @@ import {
   type ActivityDraft,
 } from '@/api/plan'
 import { keys, useActivePlan, useActivities, useProgressMutation } from '@/hooks/queries'
-import { formatClockTime, toMinutes } from '@/lib/format'
+import { toMinutes } from '@/lib/format'
 import { restDaysLabel, WEEKDAYS } from '@/lib/restDays'
 import { friendlyError } from '@/lib/supabase'
 import { Modal } from '@/components/ui/Modal'
@@ -28,7 +28,6 @@ const EMPTY: ActivityDraft = {
   is_required: true,
   requires_photo: true,
   requires_location: false,
-  reminder_time: null,
   sort_order: 0,
 }
 
@@ -76,7 +75,6 @@ export default function ManagePlan() {
       is_required: activity.is_required,
       requires_photo: activity.requires_photo,
       requires_location: activity.requires_location,
-      reminder_time: activity.reminder_time,
       sort_order: activity.sort_order,
     })
     setEditing(activity)
@@ -140,7 +138,6 @@ export default function ManagePlan() {
                   · {activity.is_required ? 'required' : 'optional'}
                   {activity.requires_photo && ' · 📷'}
                   {activity.requires_location && ' · 📍'}
-                  {activity.reminder_time && ` · ⏰ ${formatClockTime(activity.reminder_time)}`}
                 </p>
               </div>
               <button
@@ -271,21 +268,6 @@ export default function ManagePlan() {
                 'Leave this empty for a photo-only activity — no timer, just the photo.'
               )}
             </p>
-          </div>
-
-          <div>
-            <label className="label" htmlFor="activity-reminder">
-              Reminder time (optional)
-            </label>
-            <input
-              id="activity-reminder"
-              type="time"
-              className="input"
-              value={draft.reminder_time?.slice(0, 5) ?? ''}
-              onChange={(event) =>
-                setDraft({ ...draft, reminder_time: event.target.value || null })
-              }
-            />
           </div>
 
           <div className="space-y-2">

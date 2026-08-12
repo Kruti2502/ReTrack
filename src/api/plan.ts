@@ -30,7 +30,6 @@ export type ActivityDraft = {
   is_required: boolean
   requires_photo: boolean
   requires_location: boolean
-  reminder_time: string | null
   sort_order: number
 }
 

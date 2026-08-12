@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/AppShell'
 import { RequireAuth, RequireRole } from '@/components/RouteGuards'
-import { useReminders } from '@/hooks/useReminders'
 import Login from '@/pages/Login'
 import TodaysMission from '@/pages/TodaysMission'
 import ActivityDetail from '@/pages/ActivityDetail'
@@ -17,8 +16,6 @@ import KrutiSettings from '@/pages/kruti/KrutiSettings'
 import NotFound from '@/pages/NotFound'
 
 export default function App() {
-  useReminders()
-
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

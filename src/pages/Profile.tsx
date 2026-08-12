@@ -5,7 +5,6 @@ import { useJourney } from '@/hooks/queries'
 import { updateProfile } from '@/api/settings'
 import { formatDuration } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
-import { NotificationSettings } from '@/components/NotificationSettings'
 import { StatTile } from '@/components/ui/Feedback'
 import { useToast } from '@/context/ToastProvider'
 
@@ -92,8 +91,6 @@ export default function Profile() {
           <Save size={18} /> Save
         </button>
       </section>
-
-      <NotificationSettings />
 
       <p className="px-4 text-center text-sm font-bold leading-relaxed text-ink-400">
         One day at a time. One step at a time. <Heart size={13} className="inline fill-blush-400 text-blush-400" />

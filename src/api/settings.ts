@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { MotivationalMessage, NotificationPreferences, Profile } from '@/types/db'
+import type { MotivationalMessage, Profile } from '@/types/db'
 
 // -----------------------------------------------------------------------------
 // Profiles
@@ -71,32 +71,4 @@ export async function updateMessage(
 export async function deleteMessage(id: string): Promise<void> {
   const { error } = await supabase.from('motivational_messages').delete().eq('id', id)
   if (error) throw error
-}
-
-// -----------------------------------------------------------------------------
-// Notification preferences
-// -----------------------------------------------------------------------------
-export async function fetchNotificationPrefs(
-  userId: string,
-): Promise<NotificationPreferences | null> {
-  const { data, error } = await supabase
-    .from('notification_preferences')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle()
-  if (error) throw error
-  return data as NotificationPreferences | null
-}
-
-export async function saveNotificationPrefs(
-  userId: string,
-  patch: Partial<Omit<NotificationPreferences, 'user_id' | 'created_at' | 'updated_at'>>,
-): Promise<NotificationPreferences> {
-  const { data, error } = await supabase
-    .from('notification_preferences')
-    .upsert({ user_id: userId, ...patch }, { onConflict: 'user_id' })
-    .select()
-    .single()
-  if (error) throw error
-  return data as NotificationPreferences
 }
