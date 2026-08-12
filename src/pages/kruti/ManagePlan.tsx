@@ -11,6 +11,7 @@ import {
 } from '@/api/plan'
 import { keys, useActivePlan, useActivities, useProgressMutation } from '@/hooks/queries'
 import { formatClockTime, toMinutes } from '@/lib/format'
+import { restDaysLabel, WEEKDAYS } from '@/lib/restDays'
 import { friendlyError } from '@/lib/supabase'
 import { Modal } from '@/components/ui/Modal'
 import { EmptyState, Spinner } from '@/components/ui/Feedback'
@@ -108,6 +109,9 @@ export default function ManagePlan() {
             <p className="text-xs text-ink-400">
               Started {plan.data.start_date} · goal {plan.data.goal_days} days ·{' '}
               {plan.data.timezone}
+            </p>
+            <p className="text-xs text-ink-400">
+              😴 Rest: {restDaysLabel(plan.data.rest_days)}
             </p>
           </div>
           <Pencil size={16} className="text-ink-400" />
@@ -332,7 +336,14 @@ export default function ManagePlan() {
       <Modal open={planOpen} onClose={() => setPlanOpen(false)} title="Journey settings">
         {plan.data && (
           <PlanForm
-            initial={plan.data}
+            initial={{
+              name: plan.data.name,
+              start_date: plan.data.start_date,
+              goal_days: plan.data.goal_days,
+              timezone: plan.data.timezone,
+              // Empty until 006 has run, and the picker must not crash meanwhile.
+              rest_days: plan.data.rest_days ?? [],
+            }}
             saving={savePlan.isPending}
             onSave={(patch) => {
               void savePlan
@@ -373,21 +384,34 @@ function Toggle({
   )
 }
 
+type PlanPatch = {
+  name: string
+  start_date: string
+  goal_days: number
+  timezone: string
+  rest_days: number[]
+}
+
 function PlanForm({
   initial,
   saving,
   onSave,
 }: {
-  initial: { name: string; start_date: string; goal_days: number; timezone: string }
+  initial: PlanPatch
   saving: boolean
-  onSave: (patch: {
-    name: string
-    start_date: string
-    goal_days: number
-    timezone: string
-  }) => void
+  onSave: (patch: PlanPatch) => void
 }) {
   const [form, setForm] = useState(initial)
+
+  function toggleRestDay(value: number) {
+    const next = form.rest_days.includes(value)
+      ? form.rest_days.filter((day) => day !== value)
+      : [...form.rest_days, value].sort((a, b) => a - b)
+    // A week that is entirely rest has no journey left to measure — the
+    // database rejects it, so the last working day cannot be given away here.
+    if (next.length > 6) return
+    setForm({ ...form, rest_days: next })
+  }
 
   return (
     <div className="space-y-4">
@@ -431,6 +455,35 @@ function PlanForm({
             }
           />
         </div>
+      </div>
+
+      <div>
+        <span className="label">Rest days</span>
+        <div className="flex flex-wrap gap-2">
+          {WEEKDAYS.map((day) => {
+            const on = form.rest_days.includes(day.value)
+            return (
+              <button
+                key={day.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleRestDay(day.value)}
+                className={`h-11 flex-1 rounded-2xl text-xs font-extrabold transition ${
+                  on ? 'bg-blush-500 text-white shadow-lift' : 'bg-white text-ink-600'
+                }`}
+              >
+                {day.short}
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-1 text-xs text-ink-400">
+          {form.rest_days.length === 0
+            ? 'No rest days — every day counts.'
+            : `${restDaysLabel(form.rest_days)} never count against him. Nothing is owed, the streak
+               carries over, and the average ignores them. If he trains anyway it still counts for
+               him.`}
+        </p>
       </div>
 
       <div>

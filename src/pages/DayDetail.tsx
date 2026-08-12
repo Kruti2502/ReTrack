@@ -21,7 +21,7 @@ export default function DayDetail() {
   }
   if (!day.data) return null
 
-  const { activities, progress, day_approval, day_number } = day.data
+  const { activities, progress, day_approval, day_number, is_rest_day } = day.data
   const percent = roundPercent(progress.percent)
   const withActivity = activities.filter(
     (activity) => activity.sessions.length > 0 || activity.proofs.length > 0,
@@ -41,6 +41,7 @@ export default function DayDetail() {
         <h1 className="text-2xl font-extrabold leading-tight">{formatDate(day.data.date)}</h1>
         <p className="text-sm text-ink-400">
           Day {day_number} · {formatDuration(progress.total_active_seconds)} recorded
+          {is_rest_day && ' · 😴 Rest day'}
         </p>
       </header>
 

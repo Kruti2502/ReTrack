@@ -14,14 +14,17 @@ import {
 } from 'recharts'
 import type { HistoryDay } from '@/types/db'
 import { formatDuration, toIsoDate } from '@/lib/format'
+import { isRestDate } from '@/lib/restDays'
 import { StatTile } from './ui/Feedback'
 
 const BLUSH = '#e8747c'
 const SAGE = '#7aab86'
 const GRID = '#fde8e6'
 
+type ChartDay = ReturnType<typeof fillRange>[number]
+
 /** Days without a record simply mean nothing happened — they chart as 0. */
-function fillRange(days: HistoryDay[], count: number) {
+function fillRange(days: HistoryDay[], count: number, restDays: number[]) {
   const byDate = new Map(days.map((day) => [day.date, day]))
   const today = new Date()
 
@@ -34,8 +37,24 @@ function fillRange(days: HistoryDay[], count: number) {
       percent: record ? Math.round(Number(record.percent)) : 0,
       minutes: record ? Math.round(record.total_active_seconds / 60) : 0,
       approved: record?.is_day_approved ?? false,
+      // A day with no record still has a weekday, so the plan decides.
+      rest: record?.is_rest_day ?? isRestDate(date, restDays),
     }
   })
+}
+
+/**
+ * A rest day is only left out while it is empty — training on one still counts
+ * for him. The same rule the server applies to the lifetime average.
+ */
+function scored(data: ChartDay[]): ChartDay[] {
+  return data.filter((day) => !day.rest || day.percent > 0)
+}
+
+function averagePercent(data: ChartDay[]): number {
+  const counted = scored(data)
+  if (counted.length === 0) return 0
+  return Math.round(counted.reduce((sum, day) => sum + day.percent, 0) / counted.length)
 }
 
 function ChartTooltip({
@@ -43,23 +62,63 @@ function ChartTooltip({
   payload,
 }: {
   active?: boolean
-  payload?: Array<{ payload: { date: string; percent: number; minutes: number } }>
+  payload?: Array<{ payload: { date: string; percent: number; minutes: number; rest: boolean } }>
 }) {
   if (!active || !payload?.length) return null
   const point = payload[0].payload
   return (
     <div className="rounded-xl bg-white px-3 py-2 text-xs shadow-lift">
       <p className="font-extrabold">{format(parseISO(point.date), 'MMM d')}</p>
-      <p className="text-ink-600">{point.percent}% complete</p>
-      <p className="text-ink-400">{point.minutes} minutes</p>
+      {point.rest && point.percent === 0 ? (
+        <p className="text-ink-400">😴 Rest day</p>
+      ) : (
+        <>
+          <p className="text-ink-600">
+            {point.percent}% complete{point.rest && ' · bonus'}
+          </p>
+          <p className="text-ink-400">{point.minutes} minutes</p>
+        </>
+      )}
     </div>
   )
 }
 
-export function WeeklyChart({ days }: { days: HistoryDay[] }) {
-  const data = useMemo(() => fillRange(days, 7), [days])
-  const average = Math.round(data.reduce((sum, day) => sum + day.percent, 0) / data.length)
+/**
+ * An empty rest day and an empty missed day both draw a zero-height bar, so
+ * without this they look identical. The weekday label carries the difference.
+ */
+function WeekdayTick({
+  data,
+  x,
+  y,
+  payload,
+}: {
+  data: ChartDay[]
+  x?: number
+  y?: number
+  payload?: { value: string; index: number }
+}) {
+  const day = payload ? data[payload.index] : undefined
+  const resting = day?.rest && day.percent === 0
+  return (
+    <text
+      x={x}
+      y={y}
+      dy={12}
+      textAnchor="middle"
+      fontSize={11}
+      fill={resting ? '#b9aca3' : '#8b8078'}
+    >
+      {resting ? '😴' : payload?.value}
+    </text>
+  )
+}
+
+export function WeeklyChart({ days, restDays }: { days: HistoryDay[]; restDays: number[] }) {
+  const data = useMemo(() => fillRange(days, 7, restDays), [days, restDays])
+  const average = averagePercent(data)
   const minutes = data.reduce((sum, day) => sum + day.minutes, 0)
+  const hasRest = data.some((day) => day.rest && day.percent === 0)
 
   return (
     <div className="space-y-2">
@@ -71,7 +130,7 @@ export function WeeklyChart({ days }: { days: HistoryDay[] }) {
               dataKey="label"
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 11, fill: '#8b8078' }}
+              tick={<WeekdayTick data={data} />}
             />
             <YAxis
               domain={[0, 100]}
@@ -91,7 +150,12 @@ export function WeeklyChart({ days }: { days: HistoryDay[] }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <StatTile emoji="📊" label="Average" value={`${average}%`} hint="last 7 days" />
+        <StatTile
+          emoji="📊"
+          label="Average"
+          value={`${average}%`}
+          hint={hasRest ? 'rest days excluded' : 'last 7 days'}
+        />
         <StatTile emoji="⏱️" label="Total time" value={formatDuration(minutes * 60)} />
       </div>
     </div>
@@ -100,15 +164,19 @@ export function WeeklyChart({ days }: { days: HistoryDay[] }) {
 
 export function MonthlySummary({
   days,
+  restDays,
   longestStreak,
 }: {
   days: HistoryDay[]
+  restDays: number[]
   longestStreak: number
 }) {
-  const data = useMemo(() => fillRange(days, 30), [days])
-  const average = Math.round(data.reduce((sum, day) => sum + day.percent, 0) / data.length)
+  const data = useMemo(() => fillRange(days, 30, restDays), [days, restDays])
+  const average = averagePercent(data)
   const approved = data.filter((day) => day.approved).length
-  const missed = data.filter((day) => day.percent === 0).length
+  // A rest day spent resting was never a day he owed, so it is not a miss.
+  const missed = scored(data).filter((day) => day.percent === 0).length
+  const rested = data.filter((day) => day.rest && day.percent === 0).length
   const minutes = data.reduce((sum, day) => sum + day.minutes, 0)
 
   return (
@@ -147,8 +215,13 @@ export function MonthlySummary({
       <div className="grid grid-cols-2 gap-2">
         <StatTile emoji="📊" label="Average" value={`${average}%`} />
         <StatTile emoji="❤️" label="Approved" value={approved} hint="days" />
-        <StatTile emoji="🌧️" label="Missed" value={missed} hint="days with nothing" />
+        <StatTile emoji="🌧️" label="Missed" value={missed} hint="working days with nothing" />
         <StatTile emoji="🔥" label="Longest streak" value={longestStreak} hint="days" />
+        {rested > 0 && (
+          <div className="col-span-2">
+            <StatTile emoji="😴" label="Rest days" value={rested} hint="not counted either way" />
+          </div>
+        )}
         <div className="col-span-2">
           <StatTile emoji="⏱️" label="Total time" value={formatDuration(minutes * 60)} />
         </div>

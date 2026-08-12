@@ -20,7 +20,9 @@ function buildReminders(
   const planned: PlannedReminder[] = []
   const date = day.date
 
-  if (options.activityReminders) {
+  // Nothing is due on a rest day, so nothing is chased. A finished rest day is
+  // still worth celebrating, which the summary below handles.
+  if (options.activityReminders && !day.is_rest_day) {
     for (const activity of day.activities) {
       if (!activity.reminder_time) continue
       const status = deriveStatus(activity)
@@ -44,7 +46,7 @@ function buildReminders(
 
     // On an unfinished day the summary is a nudge, so it is skipped for anyone
     // who asked not to be nudged.
-    if (complete || options.nudge) {
+    if (complete || (options.nudge && !day.is_rest_day)) {
       planned.push({
         id: `${date}|summary`,
         at: timeToDate(date, options.summaryTime),
@@ -113,7 +115,8 @@ export function useReminders() {
  * Used when notifications are unavailable or switched off.
  */
 export function useOverdueReminders(day: DayBundle | undefined) {
-  if (!day) return []
+  // A rest day has no deadlines, so nothing on it can be late.
+  if (!day || day.is_rest_day) return []
 
   const now = new Date()
   return day.activities.filter((activity) => {

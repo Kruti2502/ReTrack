@@ -3,6 +3,7 @@ import { subDays } from 'date-fns'
 import { Flame } from 'lucide-react'
 import { useHistory, useJourney } from '@/hooks/queries'
 import { formatDuration, toIsoDate } from '@/lib/format'
+import { restDaysLabel } from '@/lib/restDays'
 import { friendlyError } from '@/lib/supabase'
 import { ProgressBar } from '@/components/ui/ProgressRing'
 import { ErrorState, Spinner, StatTile } from '@/components/ui/Feedback'
@@ -34,6 +35,7 @@ export default function Journey() {
   const stats = journey.data
   const journeyPercent = Math.min(100, Math.round((stats.day_number / stats.goal_days) * 100))
   const beyondGoal = stats.day_number > stats.goal_days
+  const restDays = stats.plan?.rest_days ?? []
 
   return (
     <div className="space-y-5">
@@ -71,7 +73,14 @@ export default function Journey() {
         />
       </section>
 
-      {stats.current_streak === 0 && stats.days_elapsed > 1 && (
+      {restDays.length > 0 && (
+        <p className="card px-4 py-3 text-center text-sm text-ink-600">
+          😴 {restDaysLabel(restDays)} {restDays.length === 1 ? 'is a rest day' : 'are rest days'} —
+          they never count against the streak or the average.
+        </p>
+      )}
+
+      {stats.current_streak === 0 && stats.days_elapsed > 1 && !stats.is_rest_day && (
         <p className="card px-4 py-3 text-center text-sm font-bold text-ink-600">
           Streak paused. Today didn't go as planned — tomorrow is another chance. ❤️
         </p>
@@ -113,7 +122,7 @@ export default function Journey() {
           <Spinner />
         ) : (
           <Suspense fallback={<Spinner />}>
-            <WeeklyChart days={history.data ?? []} />
+            <WeeklyChart days={history.data ?? []} restDays={restDays} />
           </Suspense>
         )}
       </section>
@@ -124,7 +133,11 @@ export default function Journey() {
           <Spinner />
         ) : (
           <Suspense fallback={<Spinner />}>
-            <MonthlySummary days={history.data ?? []} longestStreak={stats.longest_streak} />
+            <MonthlySummary
+              days={history.data ?? []}
+              restDays={restDays}
+              longestStreak={stats.longest_streak}
+            />
           </Suspense>
         )}
       </section>

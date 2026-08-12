@@ -29,8 +29,12 @@ export default function TodaysMission() {
   }
   if (!day.data) return null
 
-  const { activities, progress, day_number, day_approval } = day.data
+  const { activities, progress, day_number, day_approval, is_rest_day } = day.data
   const percent = roundPercent(progress.percent)
+
+  // On a rest day nothing is owed, so the 0% ring would be a lie. It comes back
+  // the moment he trains anyway — that is a bonus and deserves to be seen.
+  const restingOnly = is_rest_day && percent === 0
 
   const required = activities.filter((activity) => activity.is_required)
   const remaining = required.filter((activity) => {
@@ -59,33 +63,52 @@ export default function TodaysMission() {
         <h1 className="text-2xl font-extrabold leading-tight">Today's Mission ❤️</h1>
         <p className="text-sm text-ink-400">
           Day {day_number} of {day.data.plan?.goal_days ?? 90} · {formatDate(day.data.date)}
+          {is_rest_day && ' · Rest day'}
         </p>
       </header>
 
-      <section className="flex flex-col items-center gap-3">
-        <ProgressRing
-          percent={percent}
-          label={allDone ? "Today's mission complete" : `${completedCount} of ${required.length} done`}
-          sublabel={
-            remaining.length > 0
-              ? `${remaining.length} ${remaining.length === 1 ? 'task' : 'tasks'} remaining`
-              : undefined
-          }
-        />
-
-        <div className="flex flex-wrap items-center justify-center gap-2">
+      {restingOnly ? (
+        <section className="card animate-fade-up p-5 text-center">
+          <p className="text-3xl">😴</p>
+          <h2 className="mt-1 text-xl font-extrabold">Rest day</h2>
+          <p className="mt-1 text-sm text-ink-400">
+            Nothing is owed today and nothing counts against you. Resting is part of the plan. ❤️
+          </p>
           {streak > 0 && (
-            <span className="chip bg-blush-100 text-blush-700">
-              <Flame size={14} /> {streak} day streak
-            </span>
+            <p className="mt-3 chip inline-flex bg-blush-100 text-blush-700">
+              <Flame size={14} /> {streak} day streak — safe
+            </p>
           )}
-          <span className="chip bg-white text-ink-600">
-            ⏱️ {formatDuration(progress.total_active_seconds)} today
-          </span>
-        </div>
+        </section>
+      ) : (
+        <section className="flex flex-col items-center gap-3">
+          <ProgressRing
+            percent={percent}
+            label={
+              allDone ? "Today's mission complete" : `${completedCount} of ${required.length} done`
+            }
+            sublabel={
+              remaining.length > 0
+                ? `${remaining.length} ${remaining.length === 1 ? 'task' : 'tasks'} remaining`
+                : undefined
+            }
+          />
 
-        <MotivationBanner percent={percent} dayNumber={day_number} />
-      </section>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {streak > 0 && (
+              <span className="chip bg-blush-100 text-blush-700">
+                <Flame size={14} /> {streak} day streak
+              </span>
+            )}
+            {is_rest_day && <span className="chip bg-sage-100 text-sage-700">🎁 Bonus day</span>}
+            <span className="chip bg-white text-ink-600">
+              ⏱️ {formatDuration(progress.total_active_seconds)} today
+            </span>
+          </div>
+
+          {!is_rest_day && <MotivationBanner percent={percent} dayNumber={day_number} />}
+        </section>
+      )}
 
       {day_approval && (
         <section className="card animate-fade-up border-sage-300 bg-sage-100/70 p-4 text-center">
@@ -110,24 +133,35 @@ export default function TodaysMission() {
         </section>
       )}
 
-      <ReminderBanner
-        overdue={overdue}
-        notificationsOff={!prefs.data?.enabled || notificationPermission() !== 'granted'}
-      />
+      {/* Nothing is late on a rest day, so nothing nags. */}
+      {!is_rest_day && (
+        <ReminderBanner
+          overdue={overdue}
+          notificationsOff={!prefs.data?.enabled || notificationPermission() !== 'granted'}
+        />
+      )}
 
       {nextUp && (
         <button
           type="button"
           onClick={() => navigate(`/activity/${nextUp.id}`)}
-          className="btn-primary w-full py-4 text-base"
+          className={`w-full py-4 text-base ${is_rest_day ? 'btn-secondary' : 'btn-primary'}`}
         >
-          Continue today's mission <Heart size={18} className="fill-white" />
+          {is_rest_day ? (
+            <>Train anyway — it counts as a bonus 🎁</>
+          ) : (
+            <>
+              Continue today's mission <Heart size={18} className="fill-white" />
+            </>
+          )}
         </button>
       )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between px-1">
-          <h2 className="text-lg font-extrabold">Today's activities</h2>
+          <h2 className="text-lg font-extrabold">
+            {is_rest_day ? 'Optional today' : "Today's activities"}
+          </h2>
           <Link to="/history" className="text-sm font-bold text-blush-600">
             History <ArrowRight size={14} className="inline" />
           </Link>

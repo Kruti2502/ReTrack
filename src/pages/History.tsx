@@ -87,8 +87,13 @@ export default function History() {
                 {day.photo_count > 0 && <span>· 📷 {day.photo_count}</span>}
                 {day.is_day_approved ? (
                   <span className="chip bg-sage-100 text-sage-700">❤️ Approved</span>
+                ) : day.is_rest_day ? (
+                  <span className="chip bg-white text-ink-400">😴 Rest day</span>
                 ) : (
                   <span className="chip bg-blush-50 text-ink-600">Incomplete</span>
+                )}
+                {day.is_rest_day && percent > 0 && (
+                  <span className="chip bg-sage-100 text-sage-700">🎁 Bonus</span>
                 )}
               </div>
 

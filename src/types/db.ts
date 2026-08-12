@@ -23,6 +23,8 @@ export interface DailyPlan {
   start_date: string
   goal_days: number
   timezone: string
+  /** Weekdays off, matching Postgres `extract(dow)`: 0 = Sunday … 6 = Saturday. */
+  rest_days: number[]
   is_active: boolean
   created_at: string
   updated_at: string
@@ -175,6 +177,8 @@ export interface DayBundle {
   date: string
   server_time: string
   day_number: number
+  /** Derived from the date, so it is right before any timer has run. */
+  is_rest_day: boolean
   plan: DailyPlan | null
   progress: DailyProgress
   day_approval: DailyApproval | null
@@ -193,7 +197,12 @@ export interface JourneyStats {
   full_days: number
   partial_days: number
   active_days: number
+  /** Working days he owed and did not turn up for. Rest days are not counted. */
   missed_days: number
+  rest_days_elapsed: number
+  /** Rest days he trained on anyway. */
+  bonus_days: number
+  is_rest_day: boolean
   total_active_seconds: number
   current_streak: number
   longest_streak: number
@@ -209,6 +218,7 @@ export interface HistoryDay {
   required_approved: number
   total_active_seconds: number
   is_day_approved: boolean
+  is_rest_day: boolean
   message: string | null
   photo_count: number
 }

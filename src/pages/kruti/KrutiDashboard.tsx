@@ -31,7 +31,7 @@ export default function KrutiDashboard() {
   }
   if (!day.data) return null
 
-  const { activities, progress, day_number, day_approval } = day.data
+  const { activities, progress, day_number, day_approval, is_rest_day } = day.data
   const percent = roundPercent(progress.percent)
 
   const waiting = activities.filter((activity) => activity.submission?.status === 'submitted')
@@ -46,8 +46,15 @@ export default function KrutiDashboard() {
         <h1 className="text-2xl font-extrabold leading-tight">Dharmik's today ❤️</h1>
         <p className="text-sm text-ink-400">
           Day {day_number} · {formatDate(day.data.date)}
+          {is_rest_day && ' · Rest day'}
         </p>
       </header>
+
+      {is_rest_day && (
+        <p className="card px-4 py-3 text-center text-sm text-ink-600">
+          😴 Rest day — nothing is owed today, and a blank day here costs him nothing.
+        </p>
+      )}
 
       <section className="flex flex-col items-center gap-3">
         <ProgressRing
