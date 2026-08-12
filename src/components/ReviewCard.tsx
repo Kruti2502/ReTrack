@@ -8,6 +8,7 @@ import { formatDuration, formatTime, toMinutes } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
 import { useToast } from '@/context/ToastProvider'
 import { ProofGrid } from './ProofGrid'
+import { SessionLocation } from './SessionLocation'
 import { Modal } from './ui/Modal'
 
 /** One activity as Kruti sees it: the time, the photo, and two decisions. */
@@ -47,17 +48,25 @@ export function ReviewCard({ activity }: { activity: DayActivity }) {
       {finished.length > 0 && (
         <ul className="mt-3 space-y-1 text-xs text-ink-400">
           {finished.map((session, index) => (
-            <li key={session.id} className="flex items-center gap-1.5">
-              <Clock size={11} />
-              Session {index + 1}: {formatDuration(session.active_seconds)} ·{' '}
-              {formatTime(session.started_at)}
-              {session.ended_at && ` → ${formatTime(session.ended_at)}`}
+            <li key={session.id} className="space-y-1.5">
+              <span className="flex items-center gap-1.5">
+                <Clock size={11} />
+                Session {index + 1}: {formatDuration(session.active_seconds)} ·{' '}
+                {formatTime(session.started_at)}
+                {session.ended_at && ` → ${formatTime(session.ended_at)}`}
+              </span>
+              {activity.requires_location && (
+                // Where he was standing when he pressed start.
+                <span className="ml-4 block">
+                  <SessionLocation session={session} />
+                </span>
+              )}
             </li>
           ))}
-          {activity.requires_location && (
-            <li className={locationVerified ? 'text-sage-700' : 'text-ink-400'}>
+          {activity.requires_location && !locationVerified && (
+            <li className="text-ink-400">
               <MapPin size={11} className="mr-1 inline" />
-              {locationVerified ? 'Location verified' : 'Location not verified'}
+              No location on record for this activity
             </li>
           )}
         </ul>

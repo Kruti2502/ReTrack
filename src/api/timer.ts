@@ -1,11 +1,8 @@
 import { supabase } from '@/lib/supabase'
+import type { Coordinates } from '@/lib/geolocation'
 import type { ActivitySession } from '@/types/db'
 
-export interface Coordinates {
-  lat: number
-  lng: number
-  accuracy?: number
-}
+export type { Coordinates }
 
 /**
  * All five of these are server-side functions. The browser never writes a
@@ -13,6 +10,10 @@ export interface Coordinates {
  * the database timestamps it.
  */
 
+/**
+ * `coords` is not decoration: for an activity with "ask for location at start"
+ * switched on, the database refuses to open a session without one.
+ */
 export async function startSession(
   activityId: string,
   coords?: Coordinates | null,
@@ -65,25 +66,4 @@ export async function attachLocation(
   })
   if (error) throw error
   return data as ActivitySession
-}
-
-/**
- * A one-shot location read. Never a watch — we do not track anyone.
- * Resolves to null whenever permission is refused or unavailable.
- */
-export function readLocationOnce(timeoutMs = 8000): Promise<Coordinates | null> {
-  if (!('geolocation' in navigator)) return Promise.resolve(null)
-
-  return new Promise((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        }),
-      () => resolve(null),
-      { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 60_000 },
-    )
-  })
 }

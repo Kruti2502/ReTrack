@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 interface ModalProps {
@@ -8,9 +9,21 @@ interface ModalProps {
   children: ReactNode
   /** Photos look better edge to edge. */
   bare?: boolean
+  /**
+   * Float in the middle of the screen instead of rising as a sheet from the
+   * bottom edge. For panels that must not sit near the chrome at either end.
+   */
+  center?: boolean
 }
 
-export function Modal({ open, onClose, title, children, bare = false }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  bare = false,
+  center = false,
+}: ModalProps) {
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => {
@@ -26,8 +39,18 @@ export function Modal({ open, onClose, title, children, bare = false }: ModalPro
 
   if (!open) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+  /*
+   * Portalled to the body on purpose: `.card` carries a backdrop-blur, and a
+   * backdrop-filter makes its element the containing block for fixed children.
+   * Rendered in place, a modal opened from inside a card would be pinned to
+   * that card instead of the viewport — panel off-centre, backdrop too small.
+   */
+  return createPortal(
+    <div
+      className={`fixed inset-0 z-50 flex justify-center ${
+        center ? 'items-center p-4' : 'items-end sm:items-center'
+      }`}
+    >
       <button
         type="button"
         aria-label="Close"
@@ -37,9 +60,9 @@ export function Modal({ open, onClose, title, children, bare = false }: ModalPro
       <div
         role="dialog"
         aria-modal="true"
-        className={`animate-fade-up relative z-10 max-h-[92vh] w-full overflow-y-auto rounded-t-card
-                    sm:max-w-lg sm:rounded-card ${
-                      bare ? 'bg-ink-900' : 'bg-cream p-5 safe-bottom'
+        className={`animate-fade-up relative z-10 max-h-[92vh] w-full overflow-y-auto sm:max-w-lg
+                    ${center ? 'rounded-card' : 'rounded-t-card sm:rounded-card'} ${
+                      bare ? 'bg-ink-900' : `bg-cream p-5 ${center ? '' : 'safe-bottom'}`
                     }`}
       >
         {!bare && (
@@ -67,6 +90,7 @@ export function Modal({ open, onClose, title, children, bare = false }: ModalPro
         )}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

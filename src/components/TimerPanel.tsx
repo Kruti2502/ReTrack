@@ -1,19 +1,20 @@
 import { useState } from 'react'
-import { Flag, Loader2, Pause, Play, Trash2 } from 'lucide-react'
+import { Flag, Loader2, MapPin, Pause, Play, Trash2 } from 'lucide-react'
 import type { DayActivity } from '@/types/db'
 import { useLiveSeconds } from '@/hooks/useLiveTimer'
-import { formatClock, toMinutes } from '@/lib/format'
+import { formatClock, formatTime, toMinutes } from '@/lib/format'
+import type { Coordinates } from '@/lib/geolocation'
 import {
   discardSession,
   finishSession,
   pauseSession,
-  readLocationOnce,
   resumeSession,
   startSession,
 } from '@/api/timer'
 import { useProgressMutation } from '@/hooks/queries'
 import { useToast } from '@/context/ToastProvider'
 import { friendlyError } from '@/lib/supabase'
+import { LocationGate } from './LocationGate'
 
 interface TimerPanelProps {
   activity: DayActivity
@@ -28,14 +29,13 @@ interface TimerPanelProps {
 export function TimerPanel({ activity, offsetMs }: TimerPanelProps) {
   const { toast } = useToast()
   const [busy, setBusy] = useState<string | null>(null)
+  const [gate, setGate] = useState<'start' | 'resume' | null>(null)
   const session = activity.live_session
   const liveSeconds = useLiveSeconds(session, offsetMs)
 
-  const start = useProgressMutation(async () => {
-    // Optional and one-shot: if Kruti asked for location, try once at start.
-    const coords = activity.requires_location ? await readLocationOnce() : null
-    return startSession(activity.id, coords)
-  })
+  const start = useProgressMutation((coords: Coordinates | null) =>
+    startSession(activity.id, coords),
+  )
   const pause = useProgressMutation((id: string) => pauseSession(id))
   const resume = useProgressMutation((id: string) => resumeSession(id))
   const finish = useProgressMutation((id: string) => finishSession(id))
@@ -56,6 +56,22 @@ export function TimerPanel({ activity, offsetMs }: TimerPanelProps) {
   const totalToday = activity.completed_seconds + (session ? liveSeconds : 0)
   const targetMinutes = toMinutes(activity.target_seconds)
   const running = session?.status === 'running'
+
+  // Kruti asked for a location, and this session does not carry one yet — the
+  // clock stays where it is until one is sent. `startSession` handles both
+  // cases: it attaches the point and reuses the live session if there is one.
+  const needsLocation = activity.requires_location && !session?.location_captured_at
+
+  async function sendLocationAndStart(coords: Coordinates) {
+    try {
+      await start.mutateAsync(coords)
+    } catch (caught) {
+      // Back to the gate, which keeps the timer stopped and shows why.
+      throw new Error(friendlyError(caught))
+    }
+    setGate(null)
+    toast('Location sent to Kruti ❤️', 'love')
+  }
 
   return (
     <div className="card p-5 text-center">
@@ -85,15 +101,36 @@ export function TimerPanel({ activity, offsetMs }: TimerPanelProps) {
       </p>
 
       {!session && (
-        <button
-          type="button"
-          className="btn-primary mt-4 w-full py-4"
-          disabled={busy !== null}
-          onClick={() => void run('start', () => start.mutateAsync(undefined))}
-        >
-          {busy === 'start' ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} />}
-          Start activity
-        </button>
+        <>
+          <button
+            type="button"
+            className="btn-primary mt-4 w-full py-4"
+            disabled={busy !== null}
+            onClick={() => {
+              if (needsLocation) {
+                setGate('start')
+                return
+              }
+              void run('start', () => start.mutateAsync(null))
+            }}
+          >
+            {busy === 'start' ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : activity.requires_location ? (
+              <MapPin size={18} />
+            ) : (
+              <Play size={18} />
+            )}
+            {activity.requires_location ? 'Share location & start' : 'Start activity'}
+          </button>
+
+          {activity.requires_location && (
+            <p className="mt-2 text-xs leading-relaxed text-ink-400">
+              Kruti asked to see where you are for this one. Your location is sent to her before the
+              timer starts.
+            </p>
+          )}
+        </>
       )}
 
       {session && (
@@ -118,14 +155,22 @@ export function TimerPanel({ activity, offsetMs }: TimerPanelProps) {
                 type="button"
                 className="btn-primary py-4"
                 disabled={busy !== null}
-                onClick={() => void run('resume', () => resume.mutateAsync(session.id))}
+                onClick={() => {
+                  if (needsLocation) {
+                    setGate('resume')
+                    return
+                  }
+                  void run('resume', () => resume.mutateAsync(session.id))
+                }}
               >
                 {busy === 'resume' ? (
                   <Loader2 size={18} className="animate-spin" />
+                ) : needsLocation ? (
+                  <MapPin size={18} />
                 ) : (
                   <Play size={18} />
                 )}
-                Resume
+                {needsLocation ? 'Share & resume' : 'Resume'}
               </button>
             )}
 
@@ -160,9 +205,19 @@ export function TimerPanel({ activity, offsetMs }: TimerPanelProps) {
         </div>
       )}
 
-      <p className="mt-4 text-xs leading-relaxed text-ink-400">
-        You can pause and come back — a target can be reached across several sessions.
-      </p>
+      {session?.location_captured_at && (
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-xs font-bold text-sage-700">
+          <MapPin size={12} /> Location sent to Kruti at {formatTime(session.location_captured_at)}
+        </p>
+      )}
+
+      <LocationGate
+        open={gate !== null}
+        activityName={activity.name}
+        intent={gate ?? 'start'}
+        onCancel={() => setGate(null)}
+        onShare={sendLocationAndStart}
+      />
     </div>
   )
 }

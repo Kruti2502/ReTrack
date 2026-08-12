@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, Clock, MapPin, Send } from 'lucide-react'
+import { ArrowLeft, Check, Clock, Send } from 'lucide-react'
 import { useAuth } from '@/context/AuthProvider'
 import { useDay, useProgressMutation } from '@/hooks/queries'
 import { useServerOffset } from '@/hooks/useLiveTimer'
@@ -12,6 +12,7 @@ import { deleteProof } from '@/api/proof'
 import { TimerPanel } from '@/components/TimerPanel'
 import { PhotoUploader } from '@/components/PhotoUploader'
 import { ProofGrid } from '@/components/ProofGrid'
+import { SessionLocation } from '@/components/SessionLocation'
 import { ProgressBar } from '@/components/ui/ProgressRing'
 import { ErrorState, Spinner } from '@/components/ui/Feedback'
 import { useToast } from '@/context/ToastProvider'
@@ -104,13 +105,28 @@ export default function ActivityDetail() {
         </div>
       )}
 
+      {/* Kruti's read-only view: the point a still-running session started from. */}
+      {!editable && activity.requires_location && activity.live_session && (
+        <section className="card p-4">
+          <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink-400">
+            Running now
+          </h2>
+          <p className="mt-1 text-sm text-ink-400">
+            Started {formatTime(activity.live_session.started_at)}
+          </p>
+          <p className="mt-1.5 text-xs">
+            <SessionLocation session={activity.live_session} />
+          </p>
+        </section>
+      )}
+
       {finished.length > 0 && (
         <section className="card p-4">
           <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink-400">Sessions</h2>
           <ul className="mt-2 divide-y divide-blush-50">
             {finished.map((session, index) => (
-              <li key={session.id} className="flex items-center gap-3 py-2.5">
-                <Clock size={16} className="text-ink-400" />
+              <li key={session.id} className="flex items-start gap-3 py-2.5">
+                <Clock size={16} className="mt-0.5 text-ink-400" />
                 <div className="flex-1">
                   <p className="text-sm font-bold">
                     Session {index + 1} · {formatClock(session.active_seconds)}
@@ -119,19 +135,12 @@ export default function ActivityDetail() {
                     {formatTime(session.started_at)}
                     {session.ended_at ? ` → ${formatTime(session.ended_at)}` : ''}
                   </p>
+                  {activity.requires_location && (
+                    <p className="mt-1.5 text-xs">
+                      <SessionLocation session={session} />
+                    </p>
+                  )}
                 </div>
-                {activity.requires_location && (
-                  <span
-                    className={`chip text-[11px] ${
-                      session.location_captured_at
-                        ? 'bg-sage-100 text-sage-700'
-                        : 'bg-blush-50 text-ink-400'
-                    }`}
-                  >
-                    <MapPin size={11} />
-                    {session.location_captured_at ? 'Verified' : 'Not verified'}
-                  </span>
-                )}
               </li>
             ))}
           </ul>

@@ -97,7 +97,7 @@ This app is for two people. Nobody else should be able to create an account.
 
 ### 1.3 Create the database
 
-Open **SQL Editor** and run these four files **in order**, from `supabase/migrations/`:
+Open **SQL Editor** and run these five files **in order**, from `supabase/migrations/`:
 
 | File | What it does |
 | --- | --- |
@@ -105,6 +105,7 @@ Open **SQL Editor** and run these four files **in order**, from `supabase/migrat
 | `002_rls.sql` | Row Level Security, role helpers, anon lockout |
 | `003_functions.sql` | Every write path: timer, proof, submission, approvals, progress |
 | `004_seed.sql` | Milestones, messages, the plan and its first activities |
+| `005_require_location.sql` | Makes "ask for location at start" a hard requirement |
 
 Paste each file's contents into a new query and run it. Wait for one to succeed before the
 next. `004_seed.sql` needs the two accounts to exist first, so **create the users next and
@@ -422,10 +423,17 @@ trust each other:
 5. **Kruti approves each activity** — with the time, the sessions and the photo in front of her.
 6. **Kruti approves the day** — a separate, final step.
 
-Optionally, Kruti can switch on **location** for an activity. When she does, the app asks for
-location once, at the moment the timer starts, and stores that single point. It never watches
-location, never tracks in the background, and shows the result as *"📍 Location verified"* or
-*"📍 Location not verified"* — an extra signal, never the deciding one.
+Optionally, Kruti can switch on **"ask for location at start"** for an activity. When she does,
+it is a requirement rather than a hint: Dharmik is asked to share his location before the timer
+will start, the point is sent with the very request that opens the session, and there is no skip.
+The database enforces the same rule — `start_activity_session` refuses to open a session for such
+an activity without a valid point, and `resume_activity_session` refuses to continue one that has
+none — so a modified client cannot start the clock around it.
+
+It is still a single reading, taken at the moment of starting. It never watches location and never
+tracks in the background. Kruti sees the exact point next to the session, with its accuracy, the
+time it was sent, and a link that opens it on a map — so for Swimming she can tell that he was at
+the pool when the clock started.
 
 EXIF timestamps are stored when the camera provides them, but they are trivially editable, so
 they are labelled as extra information and are never treated as evidence. The server upload
@@ -488,7 +496,8 @@ caches API or auth traffic, so being offline can never be used to skip a server-
 │   ├── 001_schema.sql            Tables, indexes, triggers
 │   ├── 002_rls.sql               RLS policies, role helpers, anon lockout
 │   ├── 003_functions.sql         All write paths + read bundles
-│   └── 004_seed.sql              Milestones, messages, plan, activities
+│   ├── 004_seed.sql              Milestones, messages, plan, activities
+│   └── 005_require_location.sql  Location-at-start enforced in the database
 ├── src/
 │   ├── api/                      One module per domain, wrapping Supabase
 │   │   ├── day.ts                get_day / journey stats / history
@@ -502,6 +511,8 @@ caches API or auth traffic, so being offline can never be used to skip a server-
 │   │   ├── ActivityCard.tsx      Dharmik's card, with live timer
 │   │   ├── ReviewCard.tsx        Kruti's card, with approve / ask-to-fix
 │   │   ├── TimerPanel.tsx        Start / pause / resume / finish
+│   │   ├── LocationGate.tsx      Mandatory location before a timer can start
+│   │   ├── SessionLocation.tsx   The shared point, its accuracy and a map link
 │   │   ├── PhotoUploader.tsx     Compress → preview → upload
 │   │   ├── ProofGrid.tsx         Photo thumbnails and viewer
 │   │   ├── Analytics.tsx         Weekly and monthly charts
@@ -515,6 +526,7 @@ caches API or auth traffic, so being offline can never be used to skip a server-
 │   │   ├── compressImage.ts      The compression utility
 │   │   ├── cloudinary.ts         Upload, folder layout, optional signing
 │   │   ├── exif.ts               Small EXIF reader
+│   │   ├── geolocation.ts        One-shot location read, formatting, map links
 │   │   ├── activityStatus.ts     Raw day data → card state
 │   │   ├── notifications.ts      Permission, delivery, de-duplication
 │   │   ├── supabase.ts           Client + readable error messages

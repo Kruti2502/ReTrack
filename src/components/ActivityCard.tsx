@@ -71,7 +71,7 @@ export function ActivityCard({ activity, offsetMs, readOnly = false }: ActivityC
           {activity.requires_location && (
             <span className={locationVerified ? 'text-sage-700' : 'text-ink-400'}>
               <MapPin size={12} className="mr-0.5 inline" />
-              {locationVerified ? 'Location verified' : 'No location'}
+              {locationVerified ? 'Location shared' : 'Location required'}
             </span>
           )}
           {activityPercent(activity) >= 100 && status !== 'approved' && (

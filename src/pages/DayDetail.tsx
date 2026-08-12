@@ -1,10 +1,11 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Clock, MapPin } from 'lucide-react'
+import { ArrowLeft, Clock } from 'lucide-react'
 import { useDay } from '@/hooks/queries'
 import { deriveStatus, STATUS_CLASS, STATUS_EMOJI, STATUS_LABEL } from '@/lib/activityStatus'
 import { formatDate, formatDuration, formatTime, roundPercent, toMinutes } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
 import { ProofGrid } from '@/components/ProofGrid'
+import { SessionLocation } from '@/components/SessionLocation'
 import { ProgressRing } from '@/components/ui/ProgressRing'
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/Feedback'
 
@@ -93,13 +94,15 @@ export default function DayDetail() {
               {finished.length > 0 && (
                 <ul className="mt-2 space-y-1 text-xs text-ink-400">
                   {finished.map((session, index) => (
-                    <li key={session.id} className="flex items-center gap-1.5">
-                      <Clock size={11} />
-                      Session {index + 1}: {formatDuration(session.active_seconds)} ·{' '}
-                      {formatTime(session.started_at)}
-                      {session.location_captured_at && (
-                        <span className="text-sage-700">
-                          <MapPin size={11} className="ml-1 inline" /> verified
+                    <li key={session.id} className="space-y-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Clock size={11} />
+                        Session {index + 1}: {formatDuration(session.active_seconds)} ·{' '}
+                        {formatTime(session.started_at)}
+                      </span>
+                      {(activity.requires_location || session.location_captured_at) && (
+                        <span className="ml-4 block">
+                          <SessionLocation session={session} />
                         </span>
                       )}
                     </li>
