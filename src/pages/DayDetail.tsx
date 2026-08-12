@@ -1,7 +1,13 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Clock } from 'lucide-react'
 import { useDay } from '@/hooks/queries'
-import { deriveStatus, STATUS_CLASS, STATUS_EMOJI, STATUS_LABEL } from '@/lib/activityStatus'
+import {
+  deriveStatus,
+  isUntimed,
+  STATUS_CLASS,
+  STATUS_EMOJI,
+  STATUS_LABEL,
+} from '@/lib/activityStatus'
 import { formatDate, formatDuration, formatTime, roundPercent, toMinutes } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
 import { ProofGrid } from '@/components/ProofGrid'
@@ -86,8 +92,11 @@ export default function DayDetail() {
                     </span>
                   </div>
                   <p className="text-sm text-ink-400">
-                    {toMinutes(activity.completed_seconds)} / {toMinutes(activity.target_seconds)}{' '}
-                    minutes
+                    {isUntimed(activity)
+                      ? '📷 Photo only'
+                      : `${toMinutes(activity.completed_seconds)} / ${toMinutes(
+                          activity.target_seconds ?? 0,
+                        )} minutes`}
                   </p>
                 </div>
               </div>

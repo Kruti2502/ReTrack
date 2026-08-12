@@ -1,17 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Check, Loader2, RotateCcw, Upload } from 'lucide-react'
+import { Camera, Check, Loader2, MapPin, RotateCcw, Upload } from 'lucide-react'
 import { prepareProof, uploadPreparedProof, type PreparedProof } from '@/api/proof'
 import { ALLOWED_IMAGE_TYPES, formatBytes } from '@/lib/compressImage'
+import type { Coordinates } from '@/lib/geolocation'
 import { friendlyError } from '@/lib/supabase'
 import { useToast } from '@/context/ToastProvider'
+import { LocationGate } from './LocationGate'
 
 type Stage = 'idle' | 'compressing' | 'ready' | 'uploading' | 'done'
 
 interface PhotoUploaderProps {
   activityId: string
+  activityName: string
   sessionId?: string | null
   localDate: string
   owner: string
+  /**
+   * An untimed activity Kruti asked to see a location for. There is no timer to
+   * gate, so the point is taken here and saved with the photo.
+   */
+  needsLocation?: boolean
   onUploaded: () => void
 }
 
@@ -23,9 +31,11 @@ interface PhotoUploaderProps {
  */
 export function PhotoUploader({
   activityId,
+  activityName,
   sessionId,
   localDate,
   owner,
+  needsLocation = false,
   onUploaded,
 }: PhotoUploaderProps) {
   const { toast } = useToast()
@@ -34,8 +44,12 @@ export function PhotoUploader({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [gateOpen, setGateOpen] = useState(false)
+  // Read before the camera opens, so the point is where he took the photo.
+  const [coords, setCoords] = useState<Coordinates | null>(null)
 
   const cameraInput = useRef<HTMLInputElement>(null)
+  const awaitingLocation = needsLocation && coords === null
 
   useEffect(() => {
     return () => {
@@ -43,14 +57,33 @@ export function PhotoUploader({
     }
   }, [previewUrl])
 
-  function reset() {
+  /** `keepLocation` is for a retake: same place, seconds later, no second ask. */
+  function reset(keepLocation = false) {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     setPreviewUrl(null)
     setPrepared(null)
     setProgress(0)
     setError(null)
     setStage('idle')
+    if (!keepLocation) setCoords(null)
     if (cameraInput.current) cameraInput.current.value = ''
+  }
+
+  function openCamera() {
+    cameraInput.current?.click()
+  }
+
+  /**
+   * The gate resolves only on a real fix. The camera is opened straight after
+   * it, so one tap covers both — but finding a location takes seconds, and a
+   * browser may have let go of the tap that started this by the time it lands.
+   * If it refuses, the button below is already sitting there ready to shoot.
+   */
+  async function shareThenShoot(point: Coordinates) {
+    setCoords(point)
+    setGateOpen(false)
+    toast('Location captured ❤️', 'love')
+    window.setTimeout(openCamera, 0)
   }
 
   async function onPick(event: React.ChangeEvent<HTMLInputElement>) {
@@ -84,12 +117,15 @@ export function PhotoUploader({
         sessionId,
         localDate,
         owner,
+        coords,
         onProgress: setProgress,
       })
       setStage('done')
       toast('Proof uploaded ❤️', 'success')
       onUploaded()
-      window.setTimeout(reset, 1200)
+      // Wrapped: setTimeout would otherwise hand `reset` the timer id, which
+      // would read as `keepLocation` and carry the point into the next photo.
+      window.setTimeout(() => reset(), 1200)
     } catch (caught) {
       setError(friendlyError(caught))
       setStage('ready')
@@ -102,7 +138,9 @@ export function PhotoUploader({
     <div className="card p-4">
       <h3 className="text-lg font-extrabold">Upload proof 📷</h3>
       <p className="mt-0.5 text-sm text-ink-400">
-        Snap it with your camera — it is compressed on your phone before it is uploaded.
+        {awaitingLocation
+          ? 'Your location is read as the camera opens, then the photo is compressed on your phone.'
+          : 'Snap it with your camera — it is compressed on your phone before it is uploaded.'}
       </p>
 
       <input
@@ -118,10 +156,23 @@ export function PhotoUploader({
           <button
             type="button"
             className="btn-primary w-full"
-            onClick={() => cameraInput.current?.click()}
+            onClick={() => {
+              if (awaitingLocation) {
+                setGateOpen(true)
+                return
+              }
+              openCamera()
+            }}
           >
-            <Camera size={18} /> Take photo
+            {awaitingLocation ? <MapPin size={18} /> : <Camera size={18} />}
+            {awaitingLocation ? 'Share location & take photo' : 'Take photo'}
           </button>
+
+          {needsLocation && coords && (
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-sage-700">
+              <MapPin size={12} /> Location captured — it goes to Kruti with the photo
+            </p>
+          )}
         </div>
       )}
 
@@ -179,10 +230,11 @@ export function PhotoUploader({
 
           {stage === 'ready' && (
             <div className="grid grid-cols-2 gap-3">
-              <button type="button" className="btn-secondary" onClick={reset}>
+              {/* The point was taken at this spot moments ago — keep it. */}
+              <button type="button" className="btn-secondary" onClick={() => reset(true)}>
                 <RotateCcw size={16} /> Retake
               </button>
-              <button type="button" className="btn-primary" onClick={onUpload}>
+              <button type="button" className="btn-primary" onClick={() => void onUpload()}>
                 <Upload size={16} /> Upload
               </button>
             </div>
@@ -195,6 +247,14 @@ export function PhotoUploader({
           {error}
         </p>
       )}
+
+      <LocationGate
+        open={gateOpen}
+        activityName={activityName}
+        intent="photo"
+        onCancel={() => setGateOpen(false)}
+        onShare={shareThenShoot}
+      />
     </div>
   )
 }

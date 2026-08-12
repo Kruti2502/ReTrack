@@ -4,7 +4,14 @@ import { ArrowLeft, Check, Clock, Send } from 'lucide-react'
 import { useAuth } from '@/context/AuthProvider'
 import { useDay, useProgressMutation } from '@/hooks/queries'
 import { useServerOffset } from '@/hooks/useLiveTimer'
-import { deriveStatus, STATUS_CLASS, STATUS_EMOJI, STATUS_LABEL } from '@/lib/activityStatus'
+import {
+  activityPercent,
+  deriveStatus,
+  isUntimed,
+  STATUS_CLASS,
+  STATUS_EMOJI,
+  STATUS_LABEL,
+} from '@/lib/activityStatus'
 import { formatClock, formatDuration, formatTime, toMinutes } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
 import { submitActivity } from '@/api/review'
@@ -40,20 +47,19 @@ export default function ActivityDetail() {
   }
 
   const status = deriveStatus(activity)
+  const untimed = isUntimed(activity)
   const finished = activity.sessions.filter((session) => session.status === 'finished')
-  const targetMinutes = toMinutes(activity.target_seconds)
-  const percent = Math.min(
-    100,
-    Math.round((activity.completed_seconds / Math.max(1, activity.target_seconds)) * 100),
-  )
+  const targetMinutes = toMinutes(activity.target_seconds ?? 0)
+  const percent = activityPercent(activity)
   // Kruti can open the same screen from her dashboard, but only to look at it.
   const isOwner = profile?.role === 'DHARMIK'
   const locked = status === 'approved' || status === 'waiting'
   const editable = isOwner && !locked
   const hasProof = activity.proofs.length > 0
   const needsProof = activity.requires_photo && !hasProof
-  const canSubmit = editable && activity.completed_seconds > 0 && !needsProof
-  const reachedTarget = activity.completed_seconds >= activity.target_seconds
+  // An untimed activity has no clock to clear — the photo is the whole bar.
+  const canSubmit = editable && !needsProof && (untimed || activity.completed_seconds > 0)
+  const reachedTarget = untimed || activity.completed_seconds >= (activity.target_seconds ?? 0)
 
   return (
     <div className="space-y-4">
@@ -70,7 +76,7 @@ export default function ActivityDetail() {
         <div className="flex-1">
           <h1 className="text-2xl font-extrabold leading-tight">{activity.name}</h1>
           <p className="text-sm text-ink-400">
-            Target {targetMinutes} minutes
+            {untimed ? 'Photo only — no timer' : `Target ${targetMinutes} minutes`}
             {!isOwner && ' · viewing only'}
           </p>
         </div>
@@ -88,7 +94,17 @@ export default function ActivityDetail() {
         </div>
       )}
 
-      {editable && <TimerPanel activity={activity} offsetMs={offset} />}
+      {editable && !untimed && <TimerPanel activity={activity} offsetMs={offset} />}
+
+      {editable && untimed && !hasProof && (
+        <div className="card p-5 text-center">
+          <p className="text-3xl">📷</p>
+          <p className="mt-1 text-lg font-extrabold">Just the photo</p>
+          <p className="mt-1 text-sm text-ink-400">
+            There is no timer on this one. Take the photo below and it is done.
+          </p>
+        </div>
+      )}
 
       {locked && (
         <div className="card p-5 text-center">
@@ -97,7 +113,9 @@ export default function ActivityDetail() {
             {status === 'approved' ? 'Approved by Kruti ❤️' : 'Waiting for Kruti'}
           </p>
           <p className="mt-1 text-sm text-ink-400">
-            {formatDuration(activity.submission?.submitted_seconds ?? 0)} recorded
+            {untimed
+              ? `${activity.proofs.length} photo${activity.proofs.length === 1 ? '' : 's'}`
+              : `${formatDuration(activity.submission?.submitted_seconds ?? 0)} recorded`}
           </p>
           {activity.submission?.review_note && (
             <p className="mt-2 text-sm text-ink-600">"{activity.submission.review_note}"</p>
@@ -175,9 +193,12 @@ export default function ActivityDetail() {
       {editable && activity.requires_photo && (
         <PhotoUploader
           activityId={activity.id}
+          activityName={activity.name}
           sessionId={activity.live_session?.id ?? finished[finished.length - 1]?.id ?? null}
           localDate={day.data.date}
           owner={profile?.role.toLowerCase() ?? 'dharmik'}
+          // With no timer to gate, the upload is the only moment a point exists.
+          needsLocation={untimed && activity.requires_location}
           onUploaded={() => void day.refetch()}
         />
       )}
@@ -191,12 +212,14 @@ export default function ActivityDetail() {
               <dt className="text-ink-400">Activity</dt>
               <dd className="font-bold">{activity.name}</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-ink-400">Duration</dt>
-              <dd className="font-bold">
-                {formatDuration(activity.completed_seconds)} of {targetMinutes} min
-              </dd>
-            </div>
+            {!untimed && (
+              <div className="flex justify-between">
+                <dt className="text-ink-400">Duration</dt>
+                <dd className="font-bold">
+                  {formatDuration(activity.completed_seconds)} of {targetMinutes} min
+                </dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-ink-400">Proof</dt>
               <dd className="font-bold">
@@ -241,7 +264,7 @@ export default function ActivityDetail() {
         </section>
       )}
 
-      {editable && needsProof && activity.completed_seconds > 0 && (
+      {editable && needsProof && !untimed && activity.completed_seconds > 0 && (
         <p className="px-2 text-center text-sm text-ink-400">
           <Check size={14} className="mr-1 inline" />
           Time is recorded. Add a photo and you can submit.

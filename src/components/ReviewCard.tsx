@@ -3,7 +3,13 @@ import { Check, Clock, MapPin, MessageCircleHeart } from 'lucide-react'
 import type { DayActivity } from '@/types/db'
 import { approveActivity, requestCorrection } from '@/api/review'
 import { useProgressMutation } from '@/hooks/queries'
-import { deriveStatus, STATUS_CLASS, STATUS_EMOJI, STATUS_LABEL } from '@/lib/activityStatus'
+import {
+  deriveStatus,
+  isUntimed,
+  STATUS_CLASS,
+  STATUS_EMOJI,
+  STATUS_LABEL,
+} from '@/lib/activityStatus'
 import { formatDuration, formatTime, toMinutes } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
 import { useToast } from '@/context/ToastProvider'
@@ -23,9 +29,12 @@ export function ReviewCard({ activity }: { activity: DayActivity }) {
   )
 
   const status = deriveStatus(activity)
+  const untimed = isUntimed(activity)
   const submission = activity.submission
   const finished = activity.sessions.filter((session) => session.status === 'finished')
   const locationVerified = finished.some((session) => session.location_captured_at)
+  // An untimed activity has no session to hang a point on — it rides the photo.
+  const locatedProof = activity.proofs.find((proof) => proof.location_captured_at)
 
   return (
     <div className="card animate-fade-up p-4">
@@ -39,7 +48,11 @@ export function ReviewCard({ activity }: { activity: DayActivity }) {
             </span>
           </div>
           <p className="text-sm text-ink-400">
-            {toMinutes(activity.completed_seconds)} / {toMinutes(activity.target_seconds)} minutes
+            {isUntimed(activity)
+              ? '📷 Photo only'
+              : `${toMinutes(activity.completed_seconds)} / ${toMinutes(
+                  activity.target_seconds ?? 0,
+                )} minutes`}
             {activity.proofs.length > 0 && ` · 📷 ${activity.proofs.length}`}
           </p>
         </div>
@@ -70,6 +83,19 @@ export function ReviewCard({ activity }: { activity: DayActivity }) {
             </li>
           )}
         </ul>
+      )}
+
+      {untimed && activity.requires_location && (
+        <p className="mt-3 text-xs text-ink-400">
+          {locatedProof ? (
+            <SessionLocation session={locatedProof} />
+          ) : (
+            <>
+              <MapPin size={11} className="mr-1 inline" />
+              No location on record for this activity
+            </>
+          )}
+        </p>
       )}
 
       {activity.proofs.length > 0 && (
@@ -113,6 +139,12 @@ export function ReviewCard({ activity }: { activity: DayActivity }) {
       {submission?.status === 'correction_requested' && submission.review_note && (
         <p className="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
           You asked: "{submission.review_note}"
+        </p>
+      )}
+
+      {submission?.status === 'approved' && submission.review_note && (
+        <p className="mt-3 rounded-2xl bg-sage-100 px-3 py-2 text-sm text-ink-600">
+          <span className="font-extrabold">You wrote:</span> {submission.review_note}
         </p>
       )}
 

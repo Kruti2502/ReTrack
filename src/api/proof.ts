@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { uploadProofPhoto } from '@/lib/cloudinary'
 import { compressImage, type CompressedImage } from '@/lib/compressImage'
 import { readExifSummary, type ExifSummary } from '@/lib/exif'
+import type { Coordinates } from '@/lib/geolocation'
 import type { ActivityProof } from '@/types/db'
 
 export interface PreparedProof {
@@ -27,6 +28,11 @@ export interface UploadPreparedArgs {
   sessionId?: string | null
   localDate: string
   owner: string
+  /**
+   * Only for an untimed activity that Kruti asked to see a location for. A
+   * timed one captured its point when the timer opened, so it sends nothing.
+   */
+  coords?: Coordinates | null
   onProgress?: (percent: number) => void
   signal?: AbortSignal
 }
@@ -60,6 +66,9 @@ export async function uploadPreparedProof(args: UploadPreparedArgs): Promise<Act
     p_original_filename: originalFilename,
     p_original_bytes: compressed.originalBytes,
     p_exif: exif,
+    p_lat: args.coords?.lat ?? null,
+    p_lng: args.coords?.lng ?? null,
+    p_accuracy: args.coords?.accuracy ?? null,
   })
   if (error) throw error
 

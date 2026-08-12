@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MapPin, Trash2 } from 'lucide-react'
 import type { ActivityProof } from '@/types/db'
 import { Modal } from './ui/Modal'
+import { SessionLocation } from './SessionLocation'
 import { formatBytes } from '@/lib/compressImage'
 import { formatTimestamp } from '@/lib/format'
 
@@ -56,6 +57,13 @@ export function ProofGrid({ proofs, onDelete, columns = 3 }: ProofGridProps) {
                 {open.width && open.height ? ` · ${open.width}×${open.height}` : ''}
                 {open.original_bytes ? ` · from ${formatBytes(open.original_bytes)}` : ''}
               </p>
+              {/* Where he was, for an activity Kruti asked to see a location for. */}
+              {open.location_captured_at && (
+                <p className="pt-1 text-xs">
+                  <SessionLocation session={open} />
+                </p>
+              )}
+
               {open.exif?.taken_at ? (
                 <p className="text-xs text-ink-400">
                   <MapPin size={11} className="mr-1 inline" />

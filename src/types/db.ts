@@ -35,8 +35,8 @@ export interface Activity {
   plan_id: string
   name: string
   icon: string
-  target_seconds: number
-  weight: number
+  /** Null means untimed: no stopwatch, the photo proof is the whole task. */
+  target_seconds: number | null
   is_required: boolean
   requires_photo: boolean
   requires_location: boolean
@@ -81,6 +81,11 @@ export interface ActivityProof {
   original_filename: string | null
   original_bytes: number | null
   exif: Record<string, unknown> | null
+  /** Only for untimed activities — a timed one carries its point on the session. */
+  location_lat: number | null
+  location_lng: number | null
+  location_accuracy: number | null
+  location_captured_at: string | null
   uploaded_at: string
   created_at: string
 }
@@ -157,8 +162,8 @@ export interface DayActivity {
   id: string
   name: string
   icon: string
-  target_seconds: number
-  weight: number
+  /** Null means untimed: no stopwatch, the photo proof is the whole task. */
+  target_seconds: number | null
   is_required: boolean
   requires_photo: boolean
   requires_location: boolean

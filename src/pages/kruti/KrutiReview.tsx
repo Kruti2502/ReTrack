@@ -1,7 +1,7 @@
 import { useDay, usePendingSubmissions } from '@/hooks/queries'
-import { deriveStatus } from '@/lib/activityStatus'
 import { formatDate, roundPercent } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
+import { ApprovedOnDate } from '@/components/ApprovedOnDate'
 import { EarlierSubmissions, StrandedSubmission } from '@/components/EarlierSubmissions'
 import { ReviewCard } from '@/components/ReviewCard'
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/Feedback'
@@ -26,8 +26,6 @@ export default function KrutiReview() {
   const corrections = day.data.activities.filter(
     (activity) => activity.submission?.status === 'correction_requested',
   )
-  const approved = day.data.activities.filter((activity) => deriveStatus(activity) === 'approved')
-
   const allPending = pending.data ?? []
   const earlier = allPending.filter((item) => item.local_date !== today)
 
@@ -71,21 +69,14 @@ export default function KrutiReview() {
         </section>
       )}
 
+      <ApprovedOnDate today={today} />
+
       <EarlierSubmissions pending={earlier} today={today} />
 
       {corrections.length > 0 && (
         <section className="space-y-3">
           <h2 className="px-1 text-lg font-extrabold">Waiting on Dharmik ✏️</h2>
           {corrections.map((activity) => (
-            <ReviewCard key={activity.id} activity={activity} />
-          ))}
-        </section>
-      )}
-
-      {approved.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="px-1 text-lg font-extrabold">Approved today ✅</h2>
-          {approved.map((activity) => (
             <ReviewCard key={activity.id} activity={activity} />
           ))}
         </section>

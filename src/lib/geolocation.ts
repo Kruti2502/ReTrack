@@ -1,4 +1,4 @@
-import type { ActivitySession } from '@/types/db'
+import type { ActivityProof, ActivitySession } from '@/types/db'
 
 export interface Coordinates {
   lat: number
@@ -160,14 +160,19 @@ export interface SessionLocationPoint extends Coordinates {
   capturedAt: string | null
 }
 
-/** The point a session was started from, or null when nothing was captured. */
-export function sessionCoords(session: ActivitySession): SessionLocationPoint | null {
-  if (session.location_lat === null || session.location_lng === null) return null
+/**
+ * The point a session was started from — or, for an untimed activity, the one
+ * taken with the photo. Both rows carry the same four columns.
+ */
+export function sessionCoords(
+  source: ActivitySession | ActivityProof,
+): SessionLocationPoint | null {
+  if (source.location_lat === null || source.location_lng === null) return null
   return {
-    lat: session.location_lat,
-    lng: session.location_lng,
-    accuracy: session.location_accuracy ?? undefined,
-    capturedAt: session.location_captured_at,
+    lat: source.location_lat,
+    lng: source.location_lng,
+    accuracy: source.location_accuracy ?? undefined,
+    capturedAt: source.location_captured_at,
   }
 }
 

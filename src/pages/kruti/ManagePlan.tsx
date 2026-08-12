@@ -23,8 +23,8 @@ const ICONS = ['🏊', '🏃', '⚡', '💪', '🧘', '🚴', '🤸', '🦵', '�
 const EMPTY: ActivityDraft = {
   name: '',
   icon: '💪',
-  target_seconds: 30 * 60,
-  weight: 1,
+  // Empty, not a guess: a new activity is photo-only until a target is typed in.
+  target_seconds: null,
   is_required: true,
   requires_photo: true,
   requires_location: false,
@@ -73,7 +73,6 @@ export default function ManagePlan() {
       name: activity.name,
       icon: activity.icon,
       target_seconds: activity.target_seconds,
-      weight: Number(activity.weight),
       is_required: activity.is_required,
       requires_photo: activity.requires_photo,
       requires_location: activity.requires_location,
@@ -135,8 +134,10 @@ export default function ManagePlan() {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-extrabold">{activity.name}</p>
                 <p className="text-xs text-ink-400">
-                  {toMinutes(activity.target_seconds)} min · weight {Number(activity.weight)} ·{' '}
-                  {activity.is_required ? 'required' : 'optional'}
+                  {activity.target_seconds === null
+                    ? '📷 photo only'
+                    : `${toMinutes(activity.target_seconds)} min`}{' '}
+                  · {activity.is_required ? 'required' : 'optional'}
                   {activity.requires_photo && ' · 📷'}
                   {activity.requires_location && ' · 📍'}
                   {activity.reminder_time && ` · ⏰ ${formatClockTime(activity.reminder_time)}`}
@@ -239,45 +240,38 @@ export default function ManagePlan() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label" htmlFor="activity-target">
-                Target (minutes)
-              </label>
-              <input
-                id="activity-target"
-                type="number"
-                min={1}
-                className="input"
-                value={Math.round(draft.target_seconds / 60)}
-                onChange={(event) =>
-                  setDraft({
-                    ...draft,
-                    target_seconds: Math.max(1, Number(event.target.value)) * 60,
-                  })
+          <div>
+            <label className="label" htmlFor="activity-target">
+              Target minutes (optional)
+            </label>
+            <input
+              id="activity-target"
+              type="number"
+              min={1}
+              className="input"
+              value={draft.target_seconds === null ? '' : Math.round(draft.target_seconds / 60)}
+              onChange={(event) => {
+                const raw = event.target.value.trim()
+                // Cleared means untimed, and an untimed activity can only be
+                // finished by its photo — so the photo requirement comes on.
+                if (raw === '') {
+                  setDraft({ ...draft, target_seconds: null, requires_photo: true })
+                  return
                 }
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="activity-weight">
-                Weight
-              </label>
-              <input
-                id="activity-weight"
-                type="number"
-                min={0.5}
-                step={0.5}
-                className="input"
-                value={draft.weight}
-                onChange={(event) =>
-                  setDraft({ ...draft, weight: Math.max(0.5, Number(event.target.value)) })
-                }
-              />
-            </div>
+                setDraft({ ...draft, target_seconds: Math.max(1, Number(raw)) * 60 })
+              }}
+            />
+            <p className="mt-1 text-xs text-ink-400">
+              {draft.target_seconds === null ? (
+                <>
+                  <span className="font-bold text-ink-600">No target — photo only.</span> There is
+                  no timer: he takes the photo and this activity is done.
+                </>
+              ) : (
+                'Leave this empty for a photo-only activity — no timer, just the photo.'
+              )}
+            </p>
           </div>
-          <p className="-mt-2 text-xs text-ink-400">
-            Weight decides how much this activity counts toward the daily percentage.
-          </p>
 
           <div>
             <label className="label" htmlFor="activity-reminder">
@@ -303,6 +297,8 @@ export default function ManagePlan() {
             <Toggle
               label="Photo proof required"
               checked={draft.requires_photo}
+              // An untimed activity would have no way to be finished without it.
+              disabled={draft.target_seconds === null}
               onChange={(value) => setDraft({ ...draft, requires_photo: value })}
             />
             <Toggle
@@ -365,19 +361,26 @@ export default function ManagePlan() {
 function Toggle({
   label,
   checked,
+  disabled = false,
   onChange,
 }: {
   label: string
   checked: boolean
+  disabled?: boolean
   onChange: (value: boolean) => void
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between rounded-2xl bg-white px-4 py-3">
+    <label
+      className={`flex items-center justify-between rounded-2xl bg-white px-4 py-3 ${
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+      }`}
+    >
       <span className="text-sm font-bold">{label}</span>
       <input
         type="checkbox"
         className="h-5 w-5 accent-blush-500"
         checked={checked}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
     </label>

@@ -54,7 +54,8 @@ export function TimerPanel({ activity, offsetMs }: TimerPanelProps) {
   }
 
   const totalToday = activity.completed_seconds + (session ? liveSeconds : 0)
-  const targetMinutes = toMinutes(activity.target_seconds)
+  // Only ever rendered for a timed activity — an untimed one has no panel.
+  const targetMinutes = toMinutes(activity.target_seconds ?? 0)
   const running = session?.status === 'running'
 
   // Kruti asked for a location, and this session does not carry one yet — the

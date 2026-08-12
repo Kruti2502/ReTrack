@@ -5,6 +5,7 @@ import {
   activityPercent,
   ctaLabel,
   deriveStatus,
+  isUntimed,
   STATUS_CLASS,
   STATUS_EMOJI,
   STATUS_LABEL,
@@ -25,14 +26,17 @@ export function ActivityCard({ activity, offsetMs, readOnly = false }: ActivityC
   const status = deriveStatus(activity)
   const liveSeconds = useActivitySeconds(activity.completed_seconds, activity.live_session, offsetMs)
 
-  const targetMinutes = toMinutes(activity.target_seconds)
+  const untimed = isUntimed(activity)
+  const targetMinutes = toMinutes(activity.target_seconds ?? 0)
   const doneMinutes = Math.min(toMinutes(liveSeconds), targetMinutes)
-  const percent = Math.min(
-    100,
-    Math.round((liveSeconds / Math.max(1, activity.target_seconds)) * 100),
-  )
-  const running = activity.live_session?.status === 'running'
-  const locationVerified = activity.sessions.some((session) => session.location_captured_at)
+  const percent = untimed
+    ? activityPercent(activity)
+    : Math.min(100, Math.round((liveSeconds / Math.max(1, activity.target_seconds ?? 1)) * 100))
+  const running = !untimed && activity.live_session?.status === 'running'
+  // An untimed activity carries its point on the photo, a timed one on a session.
+  const locationVerified = untimed
+    ? activity.proofs.some((proof) => proof.location_captured_at)
+    : activity.sessions.some((session) => session.location_captured_at)
 
   return (
     <div className="card animate-fade-up p-4">
@@ -48,7 +52,7 @@ export function ActivityCard({ activity, offsetMs, readOnly = false }: ActivityC
           </div>
 
           <p className="mt-0.5 text-sm text-ink-400">
-            {doneMinutes} / {targetMinutes} min
+            {untimed ? '📷 Photo only' : `${doneMinutes} / ${targetMinutes} min`}
             {!activity.is_required && <span className="ml-1.5 text-xs">· optional</span>}
           </p>
 
@@ -74,7 +78,7 @@ export function ActivityCard({ activity, offsetMs, readOnly = false }: ActivityC
               {locationVerified ? 'Location shared' : 'Location required'}
             </span>
           )}
-          {activityPercent(activity) >= 100 && status !== 'approved' && (
+          {!untimed && activityPercent(activity) >= 100 && status !== 'approved' && (
             <span className="font-bold text-sage-700">Target reached</span>
           )}
         </div>

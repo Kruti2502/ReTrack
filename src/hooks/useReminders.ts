@@ -32,7 +32,10 @@ function buildReminders(
         id: `${date}|activity|${activity.id}`,
         at: timeToDate(date, activity.reminder_time),
         title: `${activity.icon} ${activity.name} reminder ❤️`,
-        body: `${Math.round(activity.target_seconds / 60)} minutes. You've got this.`,
+        body:
+          activity.target_seconds === null
+            ? 'Just the photo when you have done it. ❤️'
+            : `${Math.round(activity.target_seconds / 60)} minutes. You've got this.`,
       })
     }
   }

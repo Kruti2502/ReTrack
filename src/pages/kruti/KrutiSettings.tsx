@@ -38,7 +38,7 @@ export default function KrutiSettings() {
         <Settings2 size={20} className="text-blush-500" />
         <div className="flex-1">
           <p className="font-extrabold">Manage the daily plan</p>
-          <p className="text-xs text-ink-400">Activities, targets, reminders, weights</p>
+          <p className="text-xs text-ink-400">Activities, targets, reminders, rest days</p>
         </div>
       </Link>
 

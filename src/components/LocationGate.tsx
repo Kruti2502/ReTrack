@@ -9,11 +9,23 @@ import {
 } from '@/lib/geolocation'
 import { Modal } from './ui/Modal'
 
+type GateIntent = 'start' | 'resume' | 'photo'
+
+/** Everything that changes between the timer's gate and the photo's. */
+const COPY: Record<GateIntent, { verb: string; blocked: string; button: string }> = {
+  start: { verb: 'start', blocked: 'the timer cannot start', button: 'start' },
+  resume: { verb: 'continue', blocked: 'the timer cannot continue', button: 'continue' },
+  photo: { verb: 'photograph', blocked: 'the camera does not open', button: 'take photo' },
+}
+
 interface LocationGateProps {
   open: boolean
   activityName: string
-  /** "start" for a fresh session, "resume" for one that never sent a location. */
-  intent: 'start' | 'resume'
+  /**
+   * "start" for a fresh session, "resume" for one that never sent a location,
+   * "photo" for an untimed activity where the upload is the only moment there is.
+   */
+  intent: GateIntent
   onCancel: () => void
   /** Runs only once a real fix exists. Rejecting keeps the gate open. */
   onShare: (coords: Coordinates) => Promise<unknown>
@@ -32,6 +44,7 @@ export function LocationGate({ open, activityName, intent, onCancel, onShare }: 
   const [blocked, setBlocked] = useState(false)
   const busy = phase !== 'idle'
   const unblock = unblockSteps()
+  const copy = COPY[intent]
 
   /**
    * A remembered refusal means no prompt will appear, so say so before he taps.
@@ -95,10 +108,9 @@ export function LocationGate({ open, activityName, intent, onCancel, onShare }: 
       {/* The timer card centres its text; instructions have to read left-aligned. */}
       <div className="text-left">
         <p className="text-sm leading-relaxed text-ink-600">
-          Kruti asked to see where you are when you {intent === 'resume' ? 'continue' : 'start'}{' '}
+          Kruti asked to see where you are when you {copy.verb}{' '}
           <span className="font-extrabold">{activityName}</span>. Your current location is sent to
-          her first, the timer {intent === 'resume' ? 'cannot continue' : 'cannot start'} without
-          it.
+          her first, {copy.blocked} without it.
         </p>
 
         <div
@@ -107,7 +119,9 @@ export function LocationGate({ open, activityName, intent, onCancel, onShare }: 
         >
           <ShieldCheck size={16} className="mt-0.5 shrink-0 text-sage-700" />
           <span>
-            One single reading, taken now and saved with this session. Nothing is watched afterwards.
+            One single reading, taken now and saved with this{' '}
+            {intent === 'photo' ? 'photo when you send it' : 'session'}. Nothing is watched
+            afterwards.
           </span>
         </div>
 
@@ -171,7 +185,7 @@ export function LocationGate({ open, activityName, intent, onCancel, onShare }: 
               ? 'Sending to Kruti…'
               : error || blocked
                 ? 'Try again'
-                : `Share location & ${intent === 'resume' ? 'continue' : 'start'}`}
+                : `Share location & ${copy.button}`}
         </button>
 
         <button
@@ -184,7 +198,9 @@ export function LocationGate({ open, activityName, intent, onCancel, onShare }: 
         </button>
 
         <p className="mt-2 text-center text-xs text-ink-400">
-          The timer stays where it is until the location is sent.
+          {intent === 'photo'
+            ? 'The camera opens as soon as your location is shared.'
+            : 'The timer stays where it is until the location is sent.'}
         </p>
       </div>
     </Modal>

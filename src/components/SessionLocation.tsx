@@ -1,5 +1,5 @@
 import { ArrowUpRight, MapPin, TriangleAlert } from 'lucide-react'
-import type { ActivitySession } from '@/types/db'
+import type { ActivityProof, ActivitySession } from '@/types/db'
 import {
   accuracyWarning,
   formatCoords,
@@ -10,7 +10,11 @@ import {
 import { formatTime } from '@/lib/format'
 
 interface SessionLocationProps {
-  session: ActivitySession
+  /**
+   * A timed activity's session, or an untimed activity's proof — whichever
+   * carries the point. Both rows expose the same location columns.
+   */
+  session: ActivitySession | ActivityProof
   /** `chip` sits beside a session row; `line` reads as its own line of text. */
   variant?: 'chip' | 'line'
   /** Show the map link and how precise the reading was — Kruti's view. */
@@ -44,7 +48,8 @@ export function SessionLocation({
   }
 
   const warning = accuracyWarning(point.accuracy)
-  const captured = point.capturedAt ?? session.started_at
+  const isSession = 'started_at' in session
+  const captured = point.capturedAt ?? (isSession ? session.started_at : session.uploaded_at)
 
   if (!detailed) {
     return (
@@ -63,7 +68,8 @@ export function SessionLocation({
         className={`${PILL} shrink-0 border border-sage-300/70 bg-sage-100 text-sage-700
                     transition hover:bg-sage-300/50 active:scale-[0.98]`}
         title={[
-          `Started from ${formatCoords(point)} at ${formatTime(captured)}`,
+          `${isSession ? 'Started from' : 'Photographed at'} ${formatCoords(point)} at ` +
+            formatTime(captured),
           formatPrecision(point.accuracy),
         ]
           .filter(Boolean)

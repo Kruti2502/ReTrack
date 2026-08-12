@@ -25,8 +25,8 @@ export async function fetchActivities(includeArchived = false): Promise<Activity
 export type ActivityDraft = {
   name: string
   icon: string
-  target_seconds: number
-  weight: number
+  /** Null means untimed: no stopwatch, the photo proof is the whole task. */
+  target_seconds: number | null
   is_required: boolean
   requires_photo: boolean
   requires_location: boolean
