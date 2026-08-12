@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Check, ImagePlus, Loader2, RotateCcw, Upload } from 'lucide-react'
+import { Camera, Check, Loader2, RotateCcw, Upload } from 'lucide-react'
 import { prepareProof, uploadPreparedProof, type PreparedProof } from '@/api/proof'
 import { ALLOWED_IMAGE_TYPES, formatBytes } from '@/lib/compressImage'
 import { friendlyError } from '@/lib/supabase'
@@ -16,9 +16,10 @@ interface PhotoUploaderProps {
 }
 
 /**
- * Take or choose a photo → compress it on the device → look at it → upload the
- * compressed copy. The 4 MB original never touches the network and is dropped
- * from memory as soon as the compressed version exists.
+ * Shoot a photo with the camera → compress it on the device → look at it →
+ * upload the compressed copy. Gallery picks are deliberately not offered: the
+ * proof has to be taken there and then. The 4 MB original never touches the
+ * network and is dropped from memory as soon as the compressed version exists.
  */
 export function PhotoUploader({
   activityId,
@@ -35,7 +36,6 @@ export function PhotoUploader({
   const [error, setError] = useState<string | null>(null)
 
   const cameraInput = useRef<HTMLInputElement>(null)
-  const galleryInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     return () => {
@@ -51,7 +51,6 @@ export function PhotoUploader({
     setError(null)
     setStage('idle')
     if (cameraInput.current) cameraInput.current.value = ''
-    if (galleryInput.current) galleryInput.current.value = ''
   }
 
   async function onPick(event: React.ChangeEvent<HTMLInputElement>) {
@@ -103,7 +102,7 @@ export function PhotoUploader({
     <div className="card p-4">
       <h3 className="text-lg font-extrabold">Upload proof 📷</h3>
       <p className="mt-0.5 text-sm text-ink-400">
-        The photo is compressed on your phone before it is uploaded.
+        Snap it with your camera — it is compressed on your phone before it is uploaded.
       </p>
 
       <input
@@ -114,29 +113,14 @@ export function PhotoUploader({
         className="hidden"
         onChange={onPick}
       />
-      <input
-        ref={galleryInput}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={onPick}
-      />
-
       {stage === 'idle' && (
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-4">
           <button
             type="button"
-            className="btn-primary"
+            className="btn-primary w-full"
             onClick={() => cameraInput.current?.click()}
           >
             <Camera size={18} /> Take photo
-          </button>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => galleryInput.current?.click()}
-          >
-            <ImagePlus size={18} /> Gallery
           </button>
         </div>
       )}
