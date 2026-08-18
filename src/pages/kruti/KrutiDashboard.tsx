@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CalendarDays, Flame, Heart, ListChecks, Settings2 } from 'lucide-react'
+import { CalendarDays, CalendarPlus, Flame, Heart, ListChecks, Settings2 } from 'lucide-react'
 import { useDay, useJourney, useProgressMutation } from '@/hooks/queries'
 import { useServerOffset } from '@/hooks/useLiveTimer'
 import { approveDay, revokeDayApproval } from '@/api/review'
@@ -103,7 +103,7 @@ export default function KrutiDashboard() {
         </button>
       )}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Link to="/kruti/review" className="card flex flex-col items-center gap-1 px-2 py-3">
           <ListChecks size={20} className="text-blush-500" />
           <span className="text-xs font-bold">Review</span>
@@ -111,6 +111,10 @@ export default function KrutiDashboard() {
         <Link to="/history" className="card flex flex-col items-center gap-1 px-2 py-3">
           <CalendarDays size={20} className="text-blush-500" />
           <span className="text-xs font-bold">History</span>
+        </Link>
+        <Link to="/kruti/backfill" className="card flex flex-col items-center gap-1 px-2 py-3">
+          <CalendarPlus size={20} className="text-blush-500" />
+          <span className="text-xs font-bold">Fill in a day</span>
         </Link>
         <Link to="/kruti/plan" className="card flex flex-col items-center gap-1 px-2 py-3">
           <Settings2 size={20} className="text-blush-500" />

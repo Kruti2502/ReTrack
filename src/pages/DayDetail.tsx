@@ -109,6 +109,14 @@ export default function DayDetail() {
                         <Clock size={11} />
                         Session {index + 1}: {formatDuration(session.active_seconds)} ·{' '}
                         {formatTime(session.started_at)}
+                        {/*
+                          A day Kruti reconstructed must never read as one the
+                          server timed. The percentage is the same either way, so
+                          the difference has to be said out loud.
+                        */}
+                        {session.is_backfilled && (
+                          <span className="font-bold text-ink-400">· filled in by Kruti</span>
+                        )}
                       </span>
                       {(activity.requires_location || session.location_captured_at) && (
                         <span className="ml-4 block">
@@ -124,7 +132,9 @@ export default function DayDetail() {
                 <div className="mt-3">
                   <ProofGrid proofs={activity.proofs} />
                   <p className="mt-1.5 text-xs text-ink-400">
-                    Proof uploaded {formatTime(activity.proofs[0].uploaded_at)}
+                    {activity.proofs[0].is_backfilled
+                      ? `Attached by Kruti ${formatTime(activity.proofs[0].uploaded_at)}`
+                      : `Proof uploaded ${formatTime(activity.proofs[0].uploaded_at)}`}
                   </p>
                 </div>
               )}

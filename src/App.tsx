@@ -12,6 +12,7 @@ import Profile from '@/pages/Profile'
 import KrutiDashboard from '@/pages/kruti/KrutiDashboard'
 import KrutiReview from '@/pages/kruti/KrutiReview'
 import ManagePlan from '@/pages/kruti/ManagePlan'
+import BackfillDay from '@/pages/kruti/BackfillDay'
 import KrutiSettings from '@/pages/kruti/KrutiSettings'
 import NotFound from '@/pages/NotFound'
 
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/kruti" element={<KrutiDashboard />} />
             <Route path="/kruti/review" element={<KrutiReview />} />
             <Route path="/kruti/plan" element={<ManagePlan />} />
+            <Route path="/kruti/backfill" element={<BackfillDay />} />
             <Route path="/kruti/settings" element={<KrutiSettings />} />
           </Route>
         </Route>

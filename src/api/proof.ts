@@ -33,6 +33,12 @@ export interface UploadPreparedArgs {
    * timed one captured its point when the timer opened, so it sends nothing.
    */
   coords?: Coordinates | null
+  /**
+   * Kruti attaching an existing photo to a past day. It takes a different
+   * server function: no location is claimed, the day is hers to name, and the
+   * row is marked as reconstructed.
+   */
+  backfill?: boolean
   onProgress?: (percent: number) => void
   signal?: AbortSignal
 }
@@ -54,22 +60,37 @@ export async function uploadPreparedProof(args: UploadPreparedArgs): Promise<Act
     signal: args.signal,
   })
 
-  const { data, error } = await supabase.rpc('record_activity_proof', {
-    p_activity_id: args.activityId,
-    p_public_id: uploaded.public_id,
-    p_secure_url: uploaded.secure_url,
-    p_bytes: uploaded.bytes,
-    p_session_id: args.sessionId ?? null,
-    p_width: uploaded.width,
-    p_height: uploaded.height,
-    p_format: uploaded.format,
-    p_original_filename: originalFilename,
-    p_original_bytes: compressed.originalBytes,
-    p_exif: exif,
-    p_lat: args.coords?.lat ?? null,
-    p_lng: args.coords?.lng ?? null,
-    p_accuracy: args.coords?.accuracy ?? null,
-  })
+  // The proof row is written server-side either way, so the upload timestamp is
+  // never the device's. Which function depends on whose act this is.
+  const { data, error } = args.backfill
+    ? await supabase.rpc('backfill_activity_proof', {
+        p_activity_id: args.activityId,
+        p_local_date: args.localDate,
+        p_public_id: uploaded.public_id,
+        p_secure_url: uploaded.secure_url,
+        p_bytes: uploaded.bytes,
+        p_width: uploaded.width,
+        p_height: uploaded.height,
+        p_format: uploaded.format,
+        p_original_filename: originalFilename,
+        p_original_bytes: compressed.originalBytes,
+      })
+    : await supabase.rpc('record_activity_proof', {
+        p_activity_id: args.activityId,
+        p_public_id: uploaded.public_id,
+        p_secure_url: uploaded.secure_url,
+        p_bytes: uploaded.bytes,
+        p_session_id: args.sessionId ?? null,
+        p_width: uploaded.width,
+        p_height: uploaded.height,
+        p_format: uploaded.format,
+        p_original_filename: originalFilename,
+        p_original_bytes: compressed.originalBytes,
+        p_exif: exif,
+        p_lat: args.coords?.lat ?? null,
+        p_lng: args.coords?.lng ?? null,
+        p_accuracy: args.coords?.accuracy ?? null,
+      })
   if (error) throw error
 
   return data as ActivityProof

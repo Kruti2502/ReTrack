@@ -20,6 +20,12 @@ interface PhotoUploaderProps {
    * gate, so the point is taken here and saved with the photo.
    */
   needsLocation?: boolean
+  /**
+   * Kruti filling in a past day. The photo already exists — it was taken weeks
+   * ago and sent to her — so the camera-only rule is lifted and the proof is
+   * recorded as reconstructed rather than measured.
+   */
+  backfill?: boolean
   onUploaded: () => void
 }
 
@@ -36,6 +42,7 @@ export function PhotoUploader({
   localDate,
   owner,
   needsLocation = false,
+  backfill = false,
   onUploaded,
 }: PhotoUploaderProps) {
   const { toast } = useToast()
@@ -118,6 +125,7 @@ export function PhotoUploader({
         localDate,
         owner,
         coords,
+        backfill,
         onProgress: setProgress,
       })
       setStage('done')
@@ -136,18 +144,23 @@ export function PhotoUploader({
 
   return (
     <div className="card p-4">
-      <h3 className="text-lg font-extrabold">Upload proof 📷</h3>
+      <h3 className="text-lg font-extrabold">{backfill ? 'Attach a photo 📷' : 'Upload proof 📷'}</h3>
       <p className="mt-0.5 text-sm text-ink-400">
-        {awaitingLocation
-          ? 'Your location is read as the camera opens, then the photo is compressed on your phone.'
-          : 'Snap it with your camera — it is compressed on your phone before it is uploaded.'}
+        {backfill
+          ? 'Pick the photo he sent you. It is compressed here and saved against that day, marked as one you added.'
+          : awaitingLocation
+            ? 'Your location is read as the camera opens, then the photo is compressed on your phone.'
+            : 'Snap it with your camera — it is compressed on your phone before it is uploaded.'}
       </p>
 
       <input
         ref={cameraInput}
         type="file"
         accept={accept}
-        capture="environment"
+        // A live proof has to be taken there and then, so the camera is forced.
+        // A photo Kruti is attaching to a past day already exists, and demanding
+        // she re-photograph it would be absurd.
+        {...(backfill ? {} : { capture: 'environment' as const })}
         className="hidden"
         onChange={onPick}
       />
@@ -165,7 +178,11 @@ export function PhotoUploader({
             }}
           >
             {awaitingLocation ? <MapPin size={18} /> : <Camera size={18} />}
-            {awaitingLocation ? 'Share location & take photo' : 'Take photo'}
+            {backfill
+              ? 'Choose photo'
+              : awaitingLocation
+                ? 'Share location & take photo'
+                : 'Take photo'}
           </button>
 
           {needsLocation && coords && (

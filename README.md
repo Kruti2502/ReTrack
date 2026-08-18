@@ -110,6 +110,7 @@ Open **SQL Editor** and run these files **in order**, from `supabase/migrations/
 | `007_optional_target.sql` | An activity may be untimed — the photo is the whole task |
 | `008_remove_weight.sql` | Every required activity is worth the same share of the day |
 | `009_day_start_hour.sql` | A day runs 6 AM → 6 AM, so late-night training counts for the day it followed |
+| `010_backfill.sql` | Kruti can fill in a day the app missed, marked as reconstructed |
 
 Paste each file's contents into a new query and run it. Wait for one to succeed before the
 next. `004_seed.sql` needs the two accounts to exist first, so **create the users next and
@@ -516,7 +517,8 @@ caches API or auth traffic, so being offline can never be used to skip a server-
 │   ├── 006_rest_days.sql         Rest days on the plan, and how streaks read them
 │   ├── 007_optional_target.sql   Untimed activities, measured by their photo
 │   ├── 008_remove_weight.sql     A flat share per required activity
-│   └── 009_day_start_hour.sql    The 6 AM day boundary for late-night training
+│   ├── 009_day_start_hour.sql    The 6 AM day boundary for late-night training
+│   └── 010_backfill.sql          Kruti-only repair for a day that was never logged
 ├── src/
 │   ├── api/                      One module per domain, wrapping Supabase
 │   │   ├── day.ts                get_day / journey stats / history

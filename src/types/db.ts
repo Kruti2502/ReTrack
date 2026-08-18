@@ -63,6 +63,12 @@ export interface ActivitySession {
   location_lng: number | null
   location_accuracy: number | null
   location_captured_at: string | null
+  /**
+   * True when Kruti entered this after the fact instead of the server timing it.
+   * A reconstructed day must never read as one that was measured second by
+   * second, so anything showing a session says which it is.
+   */
+  is_backfilled: boolean
   created_at: string
   updated_at: string
 }
@@ -87,6 +93,8 @@ export interface ActivityProof {
   location_lng: number | null
   location_accuracy: number | null
   location_captured_at: string | null
+  /** True when Kruti attached an existing photo, so `uploaded_at` is when she attached it. */
+  is_backfilled: boolean
   uploaded_at: string
   created_at: string
 }
