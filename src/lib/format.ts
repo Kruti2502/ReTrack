@@ -31,7 +31,7 @@ export function formatDate(isoDate: string): string {
 
 /** "2026-08-09" → "Sunday, August 9, 2026" */
 export function formatDateWithWeekday(isoDate: string): string {
-  return format(parseISO(isoDate), 'EEEE  MMMM d, yyyy')
+  return format(parseISO(isoDate), 'EEEE, MMMM d')
 }
 
 /** "2026-08-09" → "Sat, Aug 9" */
