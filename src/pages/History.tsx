@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { addMonths, endOfMonth, format, isFuture, startOfMonth, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useHistory } from '@/hooks/queries'
-import { formatDate, formatDuration, toIsoDate } from '@/lib/format'
+import { formatDateWithWeekday, formatDuration, toIsoDate } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
 import { ProgressBar } from '@/components/ui/ProgressRing'
 import { EmptyState, ErrorState, Spinner } from '@/components/ui/Feedback'
@@ -73,7 +73,7 @@ export default function History() {
               className="card block animate-fade-up p-4"
             >
               <div className="flex items-baseline justify-between gap-2">
-                <p className="font-extrabold">{formatDate(day.date)}</p>
+                <p className="font-extrabold">{formatDateWithWeekday(day.date)}</p>
                 <p className="text-lg font-extrabold">{percent}%</p>
               </div>
 
