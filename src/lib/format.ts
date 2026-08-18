@@ -55,6 +55,12 @@ export function formatTime(iso: string): string {
   return format(new Date(iso), 'h:mm a')
 }
 
+export function formatHour(hour: number): string {
+  const date = new Date()
+  date.setHours(hour, 0, 0, 0)
+  return format(date, 'h a')
+}
+
 /** "20:00:00" → "8:00 PM" */
 export function formatClockTime(value: string): string {
   const [hours, minutes] = value.split(':')

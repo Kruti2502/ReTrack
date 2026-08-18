@@ -10,7 +10,7 @@ import {
   type ActivityDraft,
 } from '@/api/plan'
 import { keys, useActivePlan, useActivities, useProgressMutation } from '@/hooks/queries'
-import { toMinutes } from '@/lib/format'
+import { formatHour, toMinutes } from '@/lib/format'
 import { restDaysLabel, WEEKDAYS } from '@/lib/restDays'
 import { friendlyError } from '@/lib/supabase'
 import { Modal } from '@/components/ui/Modal'
@@ -109,6 +109,10 @@ export default function ManagePlan() {
             </p>
             <p className="text-xs text-ink-400">
               😴 Rest: {restDaysLabel(plan.data.rest_days)}
+            </p>
+            <p className="text-xs text-ink-400">
+              🌙 A day runs {formatHour(plan.data.day_start_hour ?? 6)} →{' '}
+              {formatHour(plan.data.day_start_hour ?? 6)}
             </p>
           </div>
           <Pencil size={16} className="text-ink-400" />
@@ -319,7 +323,9 @@ export default function ManagePlan() {
               start_date: plan.data.start_date,
               goal_days: plan.data.goal_days,
               timezone: plan.data.timezone,
-              // Empty until 006 has run, and the picker must not crash meanwhile.
+              // Both undefined until their migration has run, and neither the
+              // picker nor the hour may crash meanwhile.
+              day_start_hour: plan.data.day_start_hour ?? 6,
               rest_days: plan.data.rest_days ?? [],
             }}
             saving={savePlan.isPending}
@@ -369,11 +375,15 @@ function Toggle({
   )
 }
 
+/** Every hour a day could begin on. 6 is the plan's default. */
+const DAY_START_HOURS = Array.from({ length: 24 }, (_, hour) => hour)
+
 type PlanPatch = {
   name: string
   start_date: string
   goal_days: number
   timezone: string
+  day_start_hour: number
   rest_days: number[]
 }
 
@@ -483,7 +493,36 @@ function PlanForm({
           placeholder="Asia/Kolkata"
         />
         <p className="mt-1 text-xs text-ink-400">
-          This decides when a new day starts. The server uses it, not the phone.
+          This decides which clock a new day starts on. The server uses it, not the phone.
+        </p>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="plan-day-start">
+          A day starts at
+        </label>
+        <select
+          id="plan-day-start"
+          className="input"
+          value={form.day_start_hour}
+          onChange={(event) =>
+            setForm({ ...form, day_start_hour: Number(event.target.value) })
+          }
+        >
+          {DAY_START_HOURS.map((hour) => (
+            <option key={hour} value={hour}>
+              {formatHour(hour)}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-ink-400">
+          {form.day_start_hour === 0
+            ? 'Plain calendar days: anything after midnight belongs to the new day.'
+            : `A day runs ${formatHour(form.day_start_hour)} to ${formatHour(
+                form.day_start_hour,
+              )}, so training he finishes late at night still counts for the day it
+               followed. Nothing is backdated — the server still stamps every session
+               as it happens.`}
         </p>
       </div>
 

@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthProvider'
 import { useDay, useJourney } from '@/hooks/queries'
 import { useServerOffset } from '@/hooks/useLiveTimer'
 import { deriveStatus } from '@/lib/activityStatus'
-import { formatDate, formatDuration, roundPercent } from '@/lib/format'
+import { formatDate, formatDateShort, formatDuration, formatHour, roundPercent } from '@/lib/format'
 import { friendlyError } from '@/lib/supabase'
 import { ActivityCard } from '@/components/ActivityCard'
 import { MotivationBanner } from '@/components/MotivationBanner'
@@ -24,7 +24,7 @@ export default function TodaysMission() {
   }
   if (!day.data) return null
 
-  const { activities, progress, day_number, day_approval, is_rest_day } = day.data
+  const { activities, progress, day_number, day_approval, is_rest_day, past_midnight } = day.data
   const percent = roundPercent(progress.percent)
 
   // On a rest day nothing is owed, so the 0% ring would be a lie. It comes back
@@ -60,6 +60,12 @@ export default function TodaysMission() {
           Day {day_number} of {day.data.plan?.goal_days ?? 90} · {formatDate(day.data.date)}
           {is_rest_day && ' · Rest day'}
         </p>
+        {past_midnight && (
+          <p className="mt-2 chip inline-flex bg-white text-ink-600">
+            🌙 Still {formatDateShort(day.data.date)} until {formatHour(day.data.day_start_hour)} —
+            what you finish now counts for it
+          </p>
+        )}
       </header>
 
       {restingOnly ? (

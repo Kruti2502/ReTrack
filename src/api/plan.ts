@@ -77,7 +77,12 @@ export async function restoreActivity(id: string): Promise<Activity> {
 
 export async function updatePlan(
   id: string,
-  patch: Partial<Pick<DailyPlan, 'name' | 'start_date' | 'goal_days' | 'timezone' | 'rest_days'>>,
+  patch: Partial<
+    Pick<
+      DailyPlan,
+      'name' | 'start_date' | 'goal_days' | 'timezone' | 'day_start_hour' | 'rest_days'
+    >
+  >,
 ): Promise<DailyPlan> {
   const { data, error } = await supabase
     .from('daily_plans')

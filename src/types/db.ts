@@ -23,6 +23,7 @@ export interface DailyPlan {
   start_date: string
   goal_days: number
   timezone: string
+  day_start_hour: number
   /** Weekdays off, matching Postgres `extract(dow)`: 0 = Sunday … 6 = Saturday. */
   rest_days: number[]
   is_active: boolean
@@ -184,6 +185,14 @@ export interface DayBundle {
   day_number: number
   /** Derived from the date, so it is right before any timer has run. */
   is_rest_day: boolean
+  /**
+   * True only while this is the open day and the calendar has already turned —
+   * the small hours, when `date` trails the date on his phone. Always false for
+   * a past day he scrolls back to.
+   */
+  past_midnight: boolean
+  /** The hour this day closes on, mirrored from the plan for convenience. */
+  day_start_hour: number
   plan: DailyPlan | null
   progress: DailyProgress
   day_approval: DailyApproval | null

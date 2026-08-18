@@ -97,7 +97,7 @@ This app is for two people. Nobody else should be able to create an account.
 
 ### 1.3 Create the database
 
-Open **SQL Editor** and run these five files **in order**, from `supabase/migrations/`:
+Open **SQL Editor** and run these files **in order**, from `supabase/migrations/`:
 
 | File | What it does |
 | --- | --- |
@@ -106,6 +106,10 @@ Open **SQL Editor** and run these five files **in order**, from `supabase/migrat
 | `003_functions.sql` | Every write path: timer, proof, submission, approvals, progress |
 | `004_seed.sql` | Milestones, messages, the plan and its first activities |
 | `005_require_location.sql` | Makes "ask for location at start" a hard requirement |
+| `006_rest_days.sql` | Rest days on the plan; a blank Sunday stops costing the streak |
+| `007_optional_target.sql` | An activity may be untimed — the photo is the whole task |
+| `008_remove_weight.sql` | Every required activity is worth the same share of the day |
+| `009_day_start_hour.sql` | A day runs 6 AM → 6 AM, so late-night training counts for the day it followed |
 
 Paste each file's contents into a new query and run it. Wait for one to succeed before the
 next. `004_seed.sql` needs the two accounts to exist first, so **create the users next and
@@ -145,10 +149,21 @@ exists, it creates:
 - the five starting activities (Swimming 60m, Treadmill ×3 30m each, Current 90m)
 - notification preference rows
 
-**Change the timezone** if you are not in India — it decides when a new day starts:
+**Change the timezone** if you are not in India — it decides which clock a new day is read
+off:
 
 ```sql
 update public.daily_plans set timezone = 'Asia/Kolkata' where is_active;
+```
+
+**A day runs 6 AM → 6 AM**, not midnight to midnight. A shift that ends at 12:30 AM and
+training finished at 2–3 AM still count for the day they followed, so nothing has to be
+backdated and every record is still stamped live by the server. Both the hour and the
+timezone are editable from inside the app (Kruti → Journey settings), or here:
+
+```sql
+-- 6 = a day begins at 6 AM. 0 restores plain calendar days.
+update public.daily_plans set day_start_hour = 6 where is_active;
 ```
 
 Every one of those activities is editable from inside the app (Kruti → Manage plan).
@@ -497,7 +512,11 @@ caches API or auth traffic, so being offline can never be used to skip a server-
 │   ├── 002_rls.sql               RLS policies, role helpers, anon lockout
 │   ├── 003_functions.sql         All write paths + read bundles
 │   ├── 004_seed.sql              Milestones, messages, plan, activities
-│   └── 005_require_location.sql  Location-at-start enforced in the database
+│   ├── 005_require_location.sql  Location-at-start enforced in the database
+│   ├── 006_rest_days.sql         Rest days on the plan, and how streaks read them
+│   ├── 007_optional_target.sql   Untimed activities, measured by their photo
+│   ├── 008_remove_weight.sql     A flat share per required activity
+│   └── 009_day_start_hour.sql    The 6 AM day boundary for late-night training
 ├── src/
 │   ├── api/                      One module per domain, wrapping Supabase
 │   │   ├── day.ts                get_day / journey stats / history
