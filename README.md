@@ -112,6 +112,7 @@ Open **SQL Editor** and run these files **in order**, from `supabase/migrations/
 | `009_day_start_hour.sql` | A day runs 6 AM → 6 AM, so late-night training counts for the day it followed |
 | `010_backfill.sql` | Kruti can fill in a day the app missed, marked as reconstructed |
 | `011_late_night_timer.sql` | At 6 AM the previous day's timer stops, so a forgotten Finish stops blocking Start |
+| `012_review_message.sql` | Kruti can approve *with* a message, and add one later without moving the approval time |
 
 Paste each file's contents into a new query and run it. Wait for one to succeed before the
 next. `004_seed.sql` needs the two accounts to exist first, so **create the users next and

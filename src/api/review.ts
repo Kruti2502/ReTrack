@@ -25,6 +25,24 @@ export async function approveActivity(
   return data as ActivitySubmission
 }
 
+/**
+ * Her message on an activity she has already approved. Deliberately not
+ * `approve_activity` with a note: that would re-stamp `reviewed_at`, and the
+ * "Approved 9:41 PM" line would drift to whenever she got round to writing.
+ * Pass null (or an empty string) to clear it again.
+ */
+export async function setReviewNote(
+  submissionId: string,
+  note: string | null,
+): Promise<ActivitySubmission> {
+  const { data, error } = await supabase.rpc('set_review_note', {
+    p_submission_id: submissionId,
+    p_note: note,
+  })
+  if (error) throw error
+  return data as ActivitySubmission
+}
+
 export async function requestCorrection(
   submissionId: string,
   note: string,

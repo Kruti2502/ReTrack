@@ -104,6 +104,14 @@ export function ActivityCard({ activity, offsetMs, readOnly = false }: ActivityC
           <span className="font-extrabold">Kruti:</span> {activity.submission.review_note}
         </p>
       )}
+
+      {/* The reason she writes it at all. A tick he has to tap into to read
+          is a tick he reads once — this belongs on the front of the card. */}
+      {activity.submission?.status === 'approved' && activity.submission.review_note && (
+        <p className="mt-3 rounded-2xl bg-sage-100 px-3 py-2 text-sm text-ink-600">
+          <span className="font-extrabold">Kruti:</span> {activity.submission.review_note}
+        </p>
+      )}
     </div>
   )
 }
