@@ -53,7 +53,7 @@ export default function TodaysMission() {
     <div className="space-y-5">
       <header className="pt-1">
         <p className="text-sm font-bold text-ink-400">
-          Hi {profile?.display_name ?? 'there'} {profile?.emoji}
+          Hi {profile?.display_name ?? 'there'}
         </p>
         <h1 className="text-2xl font-extrabold leading-tight">Today's Mission ❤️</h1>
         <p className="text-sm text-ink-400">
@@ -85,9 +85,7 @@ export default function TodaysMission() {
         <section className="flex flex-col items-center gap-3">
           <ProgressRing
             percent={percent}
-            label={
-              allDone ? "Today's mission complete" : `${completedCount} of ${required.length} done`
-            }
+            label={allDone ? 'All done ❤️' : `${completedCount} of ${required.length} done`}
             sublabel={
               remaining.length > 0
                 ? `${remaining.length} ${remaining.length === 1 ? 'task' : 'tasks'} remaining`

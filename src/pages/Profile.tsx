@@ -8,21 +8,18 @@ import { friendlyError } from '@/lib/supabase'
 import { StatTile } from '@/components/ui/Feedback'
 import { useToast } from '@/context/ToastProvider'
 
-const EMOJIS = ['💪', '🏊', '🏃', '❤️', '🌱', '⭐', '🔥', '🐣']
-
 export default function Profile() {
   const { profile, signOut, refreshProfile } = useAuth()
   const journey = useJourney()
   const { toast } = useToast()
   const [name, setName] = useState(profile?.display_name ?? '')
-  const [emoji, setEmoji] = useState(profile?.emoji ?? '💪')
   const [saving, setSaving] = useState(false)
 
   async function save() {
     if (!profile) return
     setSaving(true)
     try {
-      await updateProfile(profile.id, { display_name: name.trim(), emoji })
+      await updateProfile(profile.id, { display_name: name.trim() })
       await refreshProfile()
       toast('Saved ❤️')
     } catch (caught) {
@@ -35,8 +32,7 @@ export default function Profile() {
   return (
     <div className="space-y-5">
       <header className="pt-1 text-center">
-        <span className="text-5xl">{emoji}</span>
-        <h1 className="mt-1 text-2xl font-extrabold leading-tight">
+        <h1 className="text-2xl font-extrabold leading-tight">
           {profile?.display_name ?? 'You'}
         </h1>
         <p className="text-sm text-ink-400">Day {journey.data?.day_number ?? 1} of the journey</p>
@@ -63,24 +59,6 @@ export default function Profile() {
           onChange={(event) => setName(event.target.value)}
           placeholder="Dharmik"
         />
-
-        <div>
-          <span className="label">Your emoji</span>
-          <div className="flex flex-wrap gap-2">
-            {EMOJIS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setEmoji(option)}
-                className={`h-11 w-11 rounded-2xl text-xl transition ${
-                  emoji === option ? 'bg-blush-500 shadow-lift' : 'bg-white'
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
-        </div>
 
         <button
           type="button"
