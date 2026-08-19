@@ -113,6 +113,7 @@ Open **SQL Editor** and run these files **in order**, from `supabase/migrations/
 | `010_backfill.sql` | Kruti can fill in a day the app missed, marked as reconstructed |
 | `011_late_night_timer.sql` | At 6 AM the previous day's timer stops, so a forgotten Finish stops blocking Start |
 | `012_review_message.sql` | Kruti can approve *with* a message, and add one later without moving the approval time |
+| `013_fill_in_today.sql` | Kruti can fill in today by hand too, not only days that have already closed |
 
 Paste each file's contents into a new query and run it. Wait for one to succeed before the
 next. `004_seed.sql` needs the two accounts to exist first, so **create the users next and
