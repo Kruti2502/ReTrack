@@ -1,5 +1,25 @@
 import { supabase } from '@/lib/supabase'
-import type { DayBundle, HistoryDay, JourneyStats } from '@/types/db'
+import type { DailyProgress, DayBundle, HistoryDay, JourneyStats } from '@/types/db'
+
+/**
+ * A day nothing has been recorded on yet has no progress row behind it, and an
+ * older `get_day` answered that with an object of nulls instead of zeroes — read
+ * straight through, it put "null of null approved" under the ring. Migration 014
+ * fixes the source; this keeps the screens honest against a database that has
+ * not caught up yet, and against any future day the server cannot count.
+ */
+function zeroedProgress(progress: Partial<DailyProgress> | null): DailyProgress {
+  return {
+    percent: progress?.percent ?? 0,
+    required_total: progress?.required_total ?? 0,
+    required_completed: progress?.required_completed ?? 0,
+    required_approved: progress?.required_approved ?? 0,
+    optional_completed: progress?.optional_completed ?? 0,
+    total_active_seconds: progress?.total_active_seconds ?? 0,
+    all_required_approved: progress?.all_required_approved ?? false,
+    is_day_approved: progress?.is_day_approved ?? false,
+  }
+}
 
 /** Everything the dashboard needs for one day, in a single round trip. */
 export async function fetchDay(localDate?: string): Promise<DayBundle> {
@@ -7,7 +27,8 @@ export async function fetchDay(localDate?: string): Promise<DayBundle> {
     p_local_date: localDate ?? null,
   })
   if (error) throw error
-  return data as DayBundle
+  const day = data as DayBundle
+  return { ...day, progress: zeroedProgress(day.progress) }
 }
 
 export async function fetchJourneyStats(): Promise<JourneyStats> {
