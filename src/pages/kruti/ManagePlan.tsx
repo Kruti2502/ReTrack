@@ -11,7 +11,12 @@ import {
 } from '@/api/plan'
 import { keys, useActivePlan, useActivities, useProgressMutation } from '@/hooks/queries'
 import { formatHour, toMinutes } from '@/lib/format'
-import { restDaysLabel, WEEKDAYS } from '@/lib/restDays'
+import {
+  restDaysLabel,
+  weekdayNamesPlural,
+  weekdayShortNames,
+  WEEKDAYS,
+} from '@/lib/restDays'
 import { friendlyError } from '@/lib/supabase'
 import { Modal } from '@/components/ui/Modal'
 import { EmptyState, Spinner } from '@/components/ui/Feedback'
@@ -28,6 +33,8 @@ const EMPTY: ActivityDraft = {
   is_required: true,
   requires_photo: true,
   requires_location: false,
+  // Sunday out, like everything else in the plan — the day the journey rests.
+  skip_days: [0],
   sort_order: 0,
 }
 
@@ -75,6 +82,9 @@ export default function ManagePlan() {
       is_required: activity.is_required,
       requires_photo: activity.requires_photo,
       requires_location: activity.requires_location,
+      // Undefined until its migration has run, and the picker may not crash
+      // meanwhile.
+      skip_days: activity.skip_days ?? [],
       sort_order: activity.sort_order,
     })
     setEditing(activity)
@@ -142,6 +152,8 @@ export default function ManagePlan() {
                   · {activity.is_required ? 'required' : 'optional'}
                   {activity.requires_photo && ' · 📷'}
                   {activity.requires_location && ' · 📍'}
+                  {(activity.skip_days?.length ?? 0) > 0 &&
+                    ` · 😴 not ${weekdayShortNames(activity.skip_days)}`}
                 </p>
               </div>
               <button
@@ -294,6 +306,36 @@ export default function ManagePlan() {
             />
           </div>
 
+          <div>
+            <span className="label">Skip on</span>
+            <div className="flex flex-wrap gap-2">
+              {WEEKDAYS.map((day) => {
+                const off = draft.skip_days.includes(day.value)
+                return (
+                  <button
+                    key={day.value}
+                    type="button"
+                    aria-pressed={off}
+                    onClick={() =>
+                      setDraft({ ...draft, skip_days: toggleDay(draft.skip_days, day.value) })
+                    }
+                    className={`h-11 flex-1 rounded-2xl text-xs font-extrabold transition ${
+                      off ? 'bg-blush-500 text-white shadow-lift' : 'bg-white text-ink-600'
+                    }`}
+                  >
+                    {day.short}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-1 text-xs text-ink-400">
+              {draft.skip_days.length === 0
+                ? 'Every day. Tap a day to leave this one out of it — the pool is shut, the class does not run.'
+                : `Not asked for on ${weekdayNamesPlural(draft.skip_days)}: it stays off his list, and
+                   the day reaches 100% without it. If he does it anyway it still counts, as a bonus.`}
+            </p>
+          </div>
+
           <button
             type="button"
             className="btn-primary w-full"
@@ -344,6 +386,17 @@ export default function ManagePlan() {
       </Modal>
     </div>
   )
+}
+
+/**
+ * Adding or removing one weekday. Seven off would mean an activity that is never
+ * asked for, which is what archiving says — the database refuses it too.
+ */
+function toggleDay(days: number[], value: number): number[] {
+  const next = days.includes(value)
+    ? days.filter((day) => day !== value)
+    : [...days, value].sort((a, b) => a - b)
+  return next.length > 6 ? days : next
 }
 
 function Toggle({
@@ -398,14 +451,10 @@ function PlanForm({
 }) {
   const [form, setForm] = useState(initial)
 
+  // A week that is entirely rest has no journey left to measure — the database
+  // rejects it, so the last working day cannot be given away here either.
   function toggleRestDay(value: number) {
-    const next = form.rest_days.includes(value)
-      ? form.rest_days.filter((day) => day !== value)
-      : [...form.rest_days, value].sort((a, b) => a - b)
-    // A week that is entirely rest has no journey left to measure — the
-    // database rejects it, so the last working day cannot be given away here.
-    if (next.length > 6) return
-    setForm({ ...form, rest_days: next })
+    setForm({ ...form, rest_days: toggleDay(form.rest_days, value) })
   }
 
   return (

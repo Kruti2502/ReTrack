@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { DailyProgress, DayBundle, HistoryDay, JourneyStats } from '@/types/db'
+import type { DailyProgress, DayActivity, DayBundle, HistoryDay, JourneyStats } from '@/types/db'
 
 /**
  * A day nothing has been recorded on yet has no progress row behind it, and an
@@ -21,6 +21,19 @@ function zeroedProgress(progress: Partial<DailyProgress> | null): DailyProgress 
   }
 }
 
+/**
+ * Skip days arrived after some days were already being read, and a database that
+ * has not run migration 015 yet answers without them. Absent means "sits nothing
+ * out", which is what every activity did before the rule existed.
+ */
+function withSkipDays(activity: DayActivity): DayActivity {
+  return {
+    ...activity,
+    skip_days: activity.skip_days ?? [],
+    is_skipped: activity.is_skipped ?? false,
+  }
+}
+
 /** Everything the dashboard needs for one day, in a single round trip. */
 export async function fetchDay(localDate?: string): Promise<DayBundle> {
   const { data, error } = await supabase.rpc('get_day', {
@@ -28,7 +41,11 @@ export async function fetchDay(localDate?: string): Promise<DayBundle> {
   })
   if (error) throw error
   const day = data as DayBundle
-  return { ...day, progress: zeroedProgress(day.progress) }
+  return {
+    ...day,
+    progress: zeroedProgress(day.progress),
+    activities: (day.activities ?? []).map(withSkipDays),
+  }
 }
 
 export async function fetchJourneyStats(): Promise<JourneyStats> {

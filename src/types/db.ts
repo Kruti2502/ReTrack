@@ -39,6 +39,11 @@ export interface Activity {
   /** Null means untimed: no stopwatch, the photo proof is the whole task. */
   target_seconds: number | null
   is_required: boolean
+  /**
+   * Weekdays this activity sits out, matching Postgres `extract(dow)`:
+   * 0 = Sunday … 6 = Saturday. Empty means every day.
+   */
+  skip_days: number[]
   requires_photo: boolean
   requires_location: boolean
   reminder_time: string | null
@@ -173,7 +178,18 @@ export interface DayActivity {
   icon: string
   /** Null means untimed: no stopwatch, the photo proof is the whole task. */
   target_seconds: number | null
+  /**
+   * For this date, not the plan's standing answer: an activity sitting the
+   * weekday out is never required, whatever the plan says about other days.
+   */
   is_required: boolean
+  /** The rule behind `is_skipped`: 0 = Sunday … 6 = Saturday. */
+  skip_days: number[]
+  /**
+   * This activity sits this particular date out. Nothing is owed, nothing is
+   * counted against him — and anything he does anyway counts as a bonus.
+   */
+  is_skipped: boolean
   requires_photo: boolean
   requires_location: boolean
   reminder_time: string | null

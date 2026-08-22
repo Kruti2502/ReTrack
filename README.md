@@ -48,7 +48,8 @@ approves it, and at the end of the day writes him something.
 - Review each submission: the recorded time, the sessions, the photo
 - Approve, or ask for a fix with a note
 - Approve the whole day and leave a personal message
-- Configure every activity — name, icon, target, weight, required, photo, location, reminder
+- Configure every activity — name, icon, target, required, photo, location, reminder, and the
+  weekdays it sits out
 - History, gallery, analytics, motivational messages
 
 Neither person can approve their own work: only Kruti approves, and the database enforces it.
@@ -115,6 +116,7 @@ Open **SQL Editor** and run these files **in order**, from `supabase/migrations/
 | `012_review_message.sql` | Kruti can approve *with* a message, and add one later without moving the approval time |
 | `013_fill_in_today.sql` | Kruti can fill in today by hand too, not only days that have already closed |
 | `014_missing_progress.sql` | A day with nothing recorded on it yet reads as 0%, not "null of null approved" |
+| `015_activity_skip_days.sql` | An activity can sit weekdays out, Sunday by default — and swimming is not a Saturday |
 
 Paste each file's contents into a new query and run it. Wait for one to succeed before the
 next. `004_seed.sql` needs the two accounts to exist first, so **create the users next and
@@ -408,14 +410,28 @@ completion = min(1, completed_seconds / target_seconds)
 
 Capped at 100% per activity — 40 minutes on a 30-minute target is 100%, not 133%.
 
-For the day, over **required** activities only, weighted:
+For the day, over the **required** activities only — a flat share each, since `008`:
 
 ```
-percent = 100 × Σ(weight × completion) / Σ(weight)
+percent = 100 × avg(completion)
 ```
 
 Only **finished** sessions count. A running timer shows on screen but does not count until
 it is finished.
+
+**Two rules decide what "required" means for a given date, and both are rules rather than
+facts stamped on a day — change one and the whole journey re-reads under it:**
+
+- **Rest days** live on the plan (`rest_days`). Nothing is owed on them and a blank one never
+  counts against him.
+- **Skip days** live on the activity (`skip_days`) — the weekdays that one activity sits out.
+  Swimming with Saturday skipped is not on his list on a Saturday, is not counted in
+  `required_total`, and cannot hold the day's approval back. **Every activity sits Sunday out
+  by default**, which is the same Sunday the plan already rests on, so a Sunday asks for
+  nothing at all. Kruti can uncheck it per activity.
+
+Both are one-directional. If he trains anyway on a day nothing was owed, the work is kept,
+shown, and counted for him — in the optional column, as a bonus.
 
 **Streaks** increase only when all three are true for a day:
 

@@ -14,6 +14,7 @@ import { useDay, useProgressMutation } from "@/hooks/queries";
 import { backfillActivity } from "@/api/backfill";
 import { approveDay } from "@/api/review";
 import { isUntimed } from "@/lib/activityStatus";
+import { weekdayNamesPlural } from "@/lib/restDays";
 import {
   formatDate,
   formatDuration,
@@ -273,7 +274,7 @@ function BackfillRow({
         <div>
           <p className="font-extrabold">
             {activity.icon} {activity.name}
-            {!activity.is_required && (
+            {!activity.is_required && !activity.is_skipped && (
               <span className="ml-1.5 text-xs font-bold text-ink-400">
                 optional
               </span>
@@ -283,6 +284,13 @@ function BackfillRow({
             {untimed
               ? "Untimed — the photo is the whole task"
               : `Target ${target}m`}
+            {/* Not owed on this weekday, so the day is already whole without it.
+                She can still fill it in: he may well have done it anyway, and
+                that is a bonus rather than a hole to be filled. */}
+            {activity.is_skipped &&
+              ` · 😴 not on ${weekdayNamesPlural(
+                activity.skip_days,
+              )} — anything here counts as a bonus`}
           </p>
         </div>
         {running ? (

@@ -4,8 +4,9 @@ import { CalendarDays, CalendarPlus, Flame, Heart, ListChecks, Settings2 } from 
 import { useDay, useJourney, useProgressMutation } from '@/hooks/queries'
 import { useServerOffset } from '@/hooks/useLiveTimer'
 import { approveDay, revokeDayApproval } from '@/api/review'
-import { deriveStatus } from '@/lib/activityStatus'
+import { deriveStatus, hasRecordedWork } from '@/lib/activityStatus'
 import { formatDate, formatDuration, roundPercent } from '@/lib/format'
+import { weekdayNamesPlural } from '@/lib/restDays'
 import { friendlyError } from '@/lib/supabase'
 import { ActivityCard } from '@/components/ActivityCard'
 import { ReviewCard } from '@/components/ReviewCard'
@@ -35,7 +36,16 @@ export default function KrutiDashboard() {
   const percent = roundPercent(progress.percent)
 
   const waiting = activities.filter((activity) => activity.submission?.status === 'submitted')
-  const rest = activities.filter((activity) => activity.submission?.status !== 'submitted')
+  // What today asked of him, plus anything sitting today out that he did anyway.
+  const rest = activities.filter(
+    (activity) =>
+      activity.submission?.status !== 'submitted' &&
+      (!activity.is_skipped || hasRecordedWork(activity)),
+  )
+  const sittingOut = activities.filter(
+    (activity) => activity.is_skipped && !hasRecordedWork(activity),
+  )
+  // Nothing sitting today out is required, so nothing here holds the day back.
   const requiredLeft = activities.filter(
     (activity) => activity.is_required && deriveStatus(activity) !== 'approved',
   ).length
@@ -148,6 +158,19 @@ export default function KrutiDashboard() {
           rest.map((activity) => (
             <ActivityCard key={activity.id} activity={activity} offsetMs={offset} readOnly />
           ))
+        )}
+
+        {/* Her own rule, said back to her, so a short list today reads as the
+            plan working rather than as something missing. */}
+        {sittingOut.length > 0 && (
+          <ul className="space-y-1 px-1 text-xs text-ink-400">
+            {sittingOut.map((activity) => (
+              <li key={activity.id}>
+                😴 {activity.icon} {activity.name} — not asked for on{' '}
+                {weekdayNamesPlural(activity.skip_days)}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

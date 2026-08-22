@@ -6,6 +6,20 @@ export function isUntimed(activity: { target_seconds: number | null }): boolean 
 }
 
 /**
+ * Anything at all happened on this activity today. Used to decide whether an
+ * activity that sits the day out still belongs on screen: it does, as a bonus,
+ * the moment he has put something into it.
+ */
+export function hasRecordedWork(activity: DayActivity): boolean {
+  return (
+    activity.sessions.length > 0 ||
+    activity.proofs.length > 0 ||
+    activity.live_session != null ||
+    activity.submission != null
+  )
+}
+
+/**
  * Turns the server's raw day data into the one word the card should show.
  * This is presentation only — the database already decided what is true.
  */

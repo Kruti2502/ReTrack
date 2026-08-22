@@ -3,8 +3,9 @@ import { ArrowRight, Flame, Heart } from 'lucide-react'
 import { useAuth } from '@/context/AuthProvider'
 import { useDay, useJourney } from '@/hooks/queries'
 import { useServerOffset } from '@/hooks/useLiveTimer'
-import { deriveStatus } from '@/lib/activityStatus'
+import { deriveStatus, hasRecordedWork } from '@/lib/activityStatus'
 import { formatDate, formatDateShort, formatDuration, formatHour, roundPercent } from '@/lib/format'
+import { weekdayNamesPlural } from '@/lib/restDays'
 import { friendlyError } from '@/lib/supabase'
 import { ActivityCard } from '@/components/ActivityCard'
 import { MotivationBanner } from '@/components/MotivationBanner'
@@ -31,6 +32,15 @@ export default function TodaysMission() {
   // the moment he trains anyway — that is a bonus and deserves to be seen.
   const restingOnly = is_rest_day && percent === 0
 
+  // An activity that sits today out is not on his list at all — unless he did it
+  // anyway, and then it is here as a bonus and deserves to be seen.
+  const onToday = activities.filter((activity) => !activity.is_skipped || hasRecordedWork(activity))
+  const sittingOut = activities.filter(
+    (activity) => activity.is_skipped && !hasRecordedWork(activity),
+  )
+
+  // `is_required` is already false for anything sitting today out, so nothing
+  // below has to know about skip days.
   const required = activities.filter((activity) => activity.is_required)
   const remaining = required.filter((activity) => {
     const status = deriveStatus(activity)
@@ -164,10 +174,33 @@ export default function TodaysMission() {
             title="No activities yet"
             description="Kruti hasn't set up the daily plan. Ask her to add the first one."
           />
+        ) : onToday.length === 0 ? (
+          <EmptyState
+            emoji="😴"
+            title="Nothing on today"
+            description="Everything in the plan sits this day out. Rest — it costs you nothing. ❤️"
+          />
         ) : (
-          activities.map((activity) => (
+          onToday.map((activity) => (
             <ActivityCard key={activity.id} activity={activity} offsetMs={offset} />
           ))
+        )}
+
+        {/* Not a hole in the list but a decision, so it says so — and says which
+            days it applies to, in case today is the day to ask her to change it.
+            Still a way in, though: nothing is owed here, and the one rule these
+            days keep is that training anyway always counts. */}
+        {sittingOut.length > 0 && (
+          <ul className="space-y-1 px-1 text-xs text-ink-400">
+            {sittingOut.map((activity) => (
+              <li key={activity.id}>
+                <Link to={`/activity/${activity.id}`} className="hover:text-ink-600">
+                  😴 {activity.icon} {activity.name} — not on{' '}
+                  {weekdayNamesPlural(activity.skip_days)} · do it anyway 🎁
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>

@@ -30,6 +30,8 @@ export type ActivityDraft = {
   is_required: boolean
   requires_photo: boolean
   requires_location: boolean
+  /** Weekdays it sits out (0 = Sunday … 6 = Saturday). Empty means every day. */
+  skip_days: number[]
   sort_order: number
 }
 
